@@ -9,7 +9,8 @@
     "build": "vite build",
     "preview": "vite preview --port 4173 --strictPort",
     "test": "node --test",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "build:html": "vite build --mode ficheiro && node scripts/inline-html.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.6.2",

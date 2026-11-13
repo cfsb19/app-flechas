@@ -41,3 +41,4 @@ Requer o Node.js 22.
     npm run e2e        # testes no browser (usa login falso, VITE_AUTH=fake)
     npm run build      # PWA em dist/
     npx cap sync android   # copia dist/ para o projeto Android
+    npm run build:html     # cópia num único ficheiro, sem login: dist-local/flechas.html

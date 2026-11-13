@@ -1,9 +1,9 @@
-import '@fontsource/barlow/400.css';
-import '@fontsource/barlow/500.css';
-import '@fontsource/barlow/600.css';
-import '@fontsource/barlow-semi-condensed/500.css';
-import '@fontsource/barlow-semi-condensed/600.css';
-import '@fontsource/barlow-semi-condensed/700.css';
+import '@fontsource/barlow/latin-400.css';
+import '@fontsource/barlow/latin-500.css';
+import '@fontsource/barlow/latin-600.css';
+import '@fontsource/barlow-semi-condensed/latin-500.css';
+import '@fontsource/barlow-semi-condensed/latin-600.css';
+import '@fontsource/barlow-semi-condensed/latin-700.css';
 import './styles.css';
 import { mountCalc } from './calc/app.js';
 import { initPwa, banner } from './pwa.js';
@@ -20,7 +20,9 @@ async function loadAuth() {
   return mod.createAuth();
 }
 
-initPwa();
+const LOCAL = import.meta.env.VITE_AUTH === 'none'; // cópia num único ficheiro HTML, sem login
+
+if (!LOCAL) initPwa();
 
 // APK Android: avisar quando houver versão nova no alojamento.
 checkApkUpdate().then(u => {
@@ -49,10 +51,19 @@ async function mountApp() {
   hist = mountHistory({ calc, boletim, history: await openHistory(), setVista });
 }
 
-loadAuth().then(auth => {
-  startGate({ auth, onUnlock: () => { mountApp(); } });
-}).catch(err => {
-  document.getElementById('login').hidden = false;
-  document.getElementById('login-msg').textContent = err.message;
-  document.getElementById('login-go').disabled = true;
-});
+if (LOCAL) {
+  document.getElementById('checking').hidden = true;
+  document.getElementById('app').hidden = false;
+  document.getElementById('account-email').textContent = 'Versão local (sem login)';
+  document.getElementById('account-until').textContent = 'Os dados ficam só neste aparelho e neste browser.';
+  document.getElementById('account-logout').hidden = true;
+  mountApp();
+} else {
+  loadAuth().then(auth => {
+    startGate({ auth, onUnlock: () => { mountApp(); } });
+  }).catch(err => {
+    document.getElementById('login').hidden = false;
+    document.getElementById('login-msg').textContent = err.message;
+    document.getElementById('login-go').disabled = true;
+  });
+}

@@ -17,7 +17,8 @@ Uma app de campo que, a partir das leituras do teodolito, calcula a flecha real 
 
 - **App (PWA + APK):** `index.html` + `src/`, construída com Vite. Vistas "Cabo a cabo" (`src/calc/app.js`) e "Boletim do vão" (`src/boletim/`), modos Verificação e Regulação; o cálculo de um cabo é `computeCabo` em `src/calc/compute.js` (usa o núcleo, sem cópias do cálculo), temperatura e interpolação em `src/calc/temperatura.js`, login e prazo offline em `src/access/`, histórico local (IndexedDB, exportação JSON/CSV) em `src/history/`, APK com Capacitor em `android/`. Design: `docs/superpowers/specs/2026-11-13-app-flechas-pwa-apk-design.md`. Configuração e instalação: `docs/configuracao.md`.
 - `core/flechas-core.mjs`: o cálculo isolado da interface, com testes. `npm test` (unitários) e `npm run e2e` (Playwright, com login falso `VITE_AUTH=fake`).
-- `app/calculadora-flechas.html`: protótipo antigo de ficheiro único (Documents by Readdle). Já não é atualizado.
+- **Cópia num único ficheiro HTML, sem login** (decisão do Batista, só para uso dele): `npm run build:html` gera `dist-local/flechas.html` (modo Vite `ficheiro`, `VITE_AUTH=none`, sem service worker; `scripts/inline-html.mjs` embute JS, CSS e fontes). O CI guarda-o como artefacto `flechas-html`; **nunca** é publicado no alojamento.
+- `app/calculadora-flechas.html`: protótipo antigo de ficheiro único (Documents by Readdle). Já não é atualizado; substituído pela cópia acima.
 - `calculadora/flechas_nspire.txt`: versão em TI-Basic para a TI-Nspire CX CAS, com a tabela de apoios embutida. Validada por tradução automática para Python; ainda não testada na calculadora.
 - `data/postes.json`: tabela de 485 tipos de apoio extraída da folha LBL.
 - `referencia/`: documento Word original (com erros, ver abaixo), folha Excel LBL do método português e foto de uma app existente.
@@ -64,7 +65,6 @@ Temperatura e tabela de regulação (confirmado pelo Batista):
 
 ## Questões em aberto e próximos passos
 
-- Cópia da app num único ficheiro HTML (sem login, porque o Firebase não funciona a partir de um ficheiro local): à espera da decisão do Batista.
 - Relatório em PDF gerado no aparelho (o histórico já exporta JSON e CSV).
 
 ## Forma de trabalhar com o utilizador

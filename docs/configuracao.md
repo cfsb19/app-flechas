@@ -130,3 +130,12 @@ Os limites gratuitos do Firebase Hosting (10 GB guardados e 360 MB transferidos 
 - Os cabos sem leituras são ignorados.
 - Se um cabo tiver uma flecha ou um parâmetro diferente do resto do grupo, carrega em **Valor próprio** nesse cabo.
 - **Guardar boletim** guarda o vão inteiro no histórico. Se o boletim foi aberto a partir do histórico, o registo existente é atualizado.
+
+## 6. Cópia num único ficheiro HTML (sem login)
+
+É uma cópia completa da app num só ficheiro, `flechas.html`, para abrir sem internet e sem instalar nada. Serve, por exemplo, no Documents by Readdle ou no PC da empresa.
+
+- **Não tem login.** Quem tiver o ficheiro pode usar a app. **É só para ti: não a envies a ninguém.** Para os colegas usa sempre a PWA ou o APK.
+- **Onde a obter:** no GitHub, abre **Actions → Testes**, escolhe o run mais recente do ramo `main` e descarrega o artefacto **flechas-html** no fundo da página. Fica disponível durante 30 dias depois de cada alteração.
+- **Medições:** ficam guardadas no browser onde abres o ficheiro. Abrir o mesmo ficheiro noutro browser ou noutro aparelho começa vazio. Em alguns visualizadores, como o Readdle, o histórico pode não ficar guardado. Exporta em JSON com frequência.
+- A cópia não se atualiza sozinha. Quando houver uma versão nova, descarrega o artefacto outra vez.
