@@ -32,7 +32,7 @@
 
 ---
 
-### Tarefa 1: Projeto Vite com o protótipo modularizado
+### Task 1: Projeto Vite com o protótipo modularizado
 
 **Ficheiros:**
 - Criar: `package.json`, `vite.config.js`, `index.html`, `src/styles.css`, `src/main.js`, `src/calc/app.js`, `src/calc/tipos.js`, `src/num.js`, `tests/num.test.mjs`, `e2e/calc.spec.mjs`, `playwright.config.mjs`
@@ -108,7 +108,7 @@ Antes de fixar os valores esperados (`13,53` e `14,69`), confirmar no `app/calcu
 
 ---
 
-### Tarefa 2: PWA offline e instalável
+### Task 2: PWA offline e instalável
 
 **Ficheiros:**
 - Criar: `public/icons/` (`icon-192.png`, `icon-512.png`, `maskable-512.png`, `apple-touch-icon-180.png`, `icon.svg`), `src/pwa.js`, `e2e/pwa.spec.mjs`
@@ -154,7 +154,7 @@ test('manifesto com nome, ícones e display standalone', async ({ request }) => 
 
 ---
 
-### Tarefa 3: Regra de acesso (prazo offline)
+### Task 3: Regra de acesso (prazo offline)
 
 **Ficheiros:**
 - Criar: `src/access/lease.js`, `tests/lease.test.mjs`
@@ -194,7 +194,7 @@ test('prazo guardado é por email', () => {
 
 ---
 
-### Tarefa 4: Login, verificação e bloqueio
+### Task 4: Login, verificação e bloqueio
 
 **Ficheiros:**
 - Criar: `src/access/auth-firebase.js`, `src/access/auth-fake.js`, `src/access/firebase-config.js`, `src/access/gate.js`, `.env.e2e`, `e2e/access.spec.mjs`, `docs/configuracao.md`
@@ -318,7 +318,7 @@ Passos a cobrir:
 
 ---
 
-### Tarefa 5: Histórico local (armazenamento e exportação)
+### Task 5: Histórico local (armazenamento e exportação)
 
 **Ficheiros:**
 - Criar: `src/history/store.js`, `src/history/export.js`, `tests/history.test.mjs`
@@ -378,7 +378,7 @@ Um registo só é válido se tiver `id` em string, `savedAt` em string, `method`
 
 ---
 
-### Tarefa 6: Histórico na interface
+### Task 6: Histórico na interface
 
 **Ficheiros:**
 - Criar: `src/history/ui.js`, `src/platform/files.js`, `e2e/history.spec.mjs`
@@ -414,7 +414,7 @@ Casos:
 
 ---
 
-### Tarefa 7: APK Android, aviso de versão, CI/CD e documentação
+### Task 7: APK Android, aviso de versão, CI/CD e documentação
 
 **Ficheiros:**
 - Criar: `capacitor.config.json`, `android/` (gerado por `npx cap add android` e incluído no git), `src/update/check.js`, `tests/update.test.mjs`, `public/version.json`, `firebase.json`, `.firebaserc`, `.github/workflows/ci.yml`, `.github/workflows/release.yml`
