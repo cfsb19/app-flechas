@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Verificação de flechas por visada</title>
+<meta name="theme-color" content="#14213D">
+</head><body>
+<div id="calc">
+<div class="wrap">
+  <header>
+    <h1>Verificação de flechas por visada</h1>
+    <p>Introduz as leituras do teodolito e a flecha teórica. O cálculo segue a catenária exata e diz se o cabo está conforme.</p>
+  </header>
+
+  <div class="layout">
+    <section class="inputs" aria-label="Dados de entrada">
+      <div class="seg method" role="radiogroup" aria-label="Método de cálculo">
+        <input type="radio" name="method" id="m-int" value="int" checked><label for="m-int">Método internacional</label>
+        <input type="radio" name="method" id="m-pt" value="pt"><label for="m-pt">Método português</label>
+      </div>
+      <p class="seg-caption" id="method-caption"></p>
+
+      <fieldset>
+        <legend>Vão</legend>
+        <div class="field">
+          <label for="a">Comprimento do vão <i>a</i></label>
+          <div class="box"><input id="a" inputmode="decimal" autocomplete="off"><span class="unit">m</span></div>
+          <span class="hint">Distância horizontal entre os dois apoios.</span>
+        </div>
+        <div class="field" data-m="pt">
+          <label for="dp">Desnível do perfil <i>opcional</i></label>
+          <div class="box"><input id="dp" inputmode="decimal" autocomplete="off" placeholder="deixa vazio para medir"><span class="unit">m</span></div>
+          <span class="hint">Se preencheres, substitui o desnível calculado pelo ângulo de fixação.</span>
+        </div>
+      </fieldset>
+
+      <fieldset data-m="int">
+        <legend>Teodolito</legend>
+        <div class="field">
+          <label for="t">Distância de visada <i>t</i></label>
+          <div class="box"><input id="t" inputmode="decimal" autocomplete="off"><span class="unit">m</span></div>
+          <span class="hint">Horizontal, do teodolito ao apoio 1, medida para fora do vão.</span>
+        </div>
+      </fieldset>
+
+      <fieldset data-m="pt">
+        <legend>Apoio de estação</legend>
+        <div class="field">
+          <label for="tipo-btn">Tipo de apoio</label>
+          <input type="hidden" id="tipo">
+          <div class="combo">
+            <button type="button" id="tipo-btn" class="combo-btn" aria-haspopup="dialog" aria-expanded="false" aria-controls="tipo-panel">
+              <span id="tipo-val" class="ph">Escolher apoio</span>
+              <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 5l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+            </button>
+            <div class="combo-panel" id="tipo-panel" role="dialog" aria-label="Escolher tipo de apoio" hidden>
+              <div class="combo-head"><strong>Tipo de apoio</strong><button type="button" class="combo-close" id="tipo-close">Fechar</button></div>
+              <div class="combo-search"><input type="search" id="tipo-q" role="combobox" aria-expanded="true" aria-controls="tipo-list" aria-autocomplete="list" placeholder="Pesquisar, ex.: YLS2" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="done"></div>
+              <p class="combo-count" id="tipo-count" aria-live="polite"></p>
+              <ul id="tipo-list" role="listbox" aria-label="Tipos de apoio"></ul>
+            </div>
+          </div>
+          <span class="hint" id="tipo-hint">Da tabela de apoios da folha LBL. Preenche H e HS.</span>
+        </div>
+        <div class="field">
+          <label for="ponto">Ponto de fixação</label>
+          <div class="box"><select id="ponto">
+            <option value="sup">Braço superior (Br.Sup)</option>
+            <option value="med">Braço médio (Br.Med)</option>
+            <option value="hu">Braço inferior (Hu)</option>
+            <option value="ht">Topo, cabo de guarda (Ht)</option>
+          </select></div>
+        </div>
+        <div class="pair">
+          <div class="field">
+            <label for="H">Altura <i>H</i></label>
+            <div class="box"><input id="H" inputmode="decimal" autocomplete="off"><span class="unit">m</span></div>
+          </div>
+          <div class="field">
+            <label for="HS">HS</label>
+            <div class="box"><input id="HS" inputmode="decimal" autocomplete="off"><span class="unit">m</span></div>
+          </div>
+        </div>
+        <div class="pair">
+          <div class="field">
+            <label for="perna">Perna</label>
+            <div class="box"><input id="perna" inputmode="decimal" autocomplete="off" placeholder="0"><span class="unit">m</span></div>
+          </div>
+          <div class="field">
+            <label for="cad">Cadeia</label>
+            <div class="box"><input id="cad" inputmode="decimal" autocomplete="off"><span class="unit">m</span></div>
+          </div>
+        </div>
+        <span class="hint">H e HS vêm da tabela, mas podes corrigi-los. A cadeia é o comprimento da cadeia de isoladores, ou da fixação no cabo de guarda.</span>
+      </fieldset>
+
+      <fieldset>
+        <legend>Leituras</legend>
+        <div data-m="int">
+          <div class="pair">
+            <div class="field">
+              <label for="z1">Desnível 1 <i>Z₁</i></label>
+              <div class="box"><input id="z1" inputmode="decimal" autocomplete="off"><span class="unit">grad</span></div>
+            </div>
+            <div class="field">
+              <label for="z2">Desnível 2 <i>Z₂</i></label>
+              <div class="box"><input id="z2" inputmode="decimal" autocomplete="off"><span class="unit">grad</span></div>
+            </div>
+          </div>
+          <span class="hint">Ao ponto de fixação do condutor no apoio 1 e no apoio 2.</span>
+        </div>
+        <div data-m="pt">
+          <div class="pair">
+            <div class="field">
+              <label for="cota">Cota</label>
+              <div class="box"><input id="cota" inputmode="decimal" autocomplete="off"><span class="unit">m</span></div>
+            </div>
+            <div class="field">
+              <label for="F">Dist. visada</label>
+              <div class="box"><input id="F" inputmode="decimal" autocomplete="off"><span class="unit">m</span></div>
+            </div>
+          </div>
+          <span class="hint">Cota e distância de visada como na folha LBL. A distância ao apoio de estação é negativa com o teodolito atrás dele, fora do vão.</span>
+          <div class="field">
+            <label for="zf">Ângulo de fixação no apoio oposto <i>Z<sub>f</sub></i></label>
+            <div class="box"><input id="zf" inputmode="decimal" autocomplete="off"><span class="unit">grad</span></div>
+          </div>
+        </div>
+        <div class="field">
+          <label for="z">Visada ao seio do cabo <i>Z</i></label>
+          <div class="box"><input id="z" inputmode="decimal" autocomplete="off"><span class="unit">grad</span></div>
+          <span class="hint">Leitura com a visada tangente ao cabo. 100 grad é a horizontal.</span>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Referência</legend>
+        <div class="pair">
+          <div class="field">
+            <label for="temp">Temperatura</label>
+            <div class="box"><input id="temp" inputmode="decimal" autocomplete="off"><span class="unit">°C</span></div>
+          </div>
+          <div class="field">
+            <label for="ft">Flecha teórica</label>
+            <div class="box"><input id="ft" inputmode="decimal" autocomplete="off"><span class="unit">m</span></div>
+          </div>
+        </div>
+        <span class="hint">A flecha teórica é a da tabela de regulação para a temperatura registada.</span>
+      </fieldset>
+
+      <details class="tol" id="tol">
+        <summary id="tol-sum">Tolerâncias</summary>
+        <div class="pair">
+          <div class="field">
+            <label for="tolA">Cabo mais alto</label>
+            <div class="box"><input id="tolA" inputmode="decimal" autocomplete="off"><span class="unit">%</span></div>
+            <span class="hint">Flecha menor que a teórica.</span>
+          </div>
+          <div class="field">
+            <label for="tolB">Cabo mais baixo</label>
+            <div class="box"><input id="tolB" inputmode="decimal" autocomplete="off"><span class="unit">%</span></div>
+            <span class="hint">Flecha maior que a teórica.</span>
+          </div>
+        </div>
+      </details>
+
+      <div class="actions">
+        <button type="button" class="link" id="next">Próximo cabo</button>
+        <button type="button" class="link" id="new">Nova medição</button>
+        <button type="button" class="link" id="ex">Preencher exemplo</button>
+      </div>
+    </section>
+
+    <section id="out" aria-live="polite" aria-label="Resultados">
+      <div class="reading st-wait" id="reading">
+        <div id="r-verdict"></div>
+        <div class="lbl" id="r-lbl"></div>
+        <div class="big" id="r-big">–</div>
+        <p class="sub" id="r-sub"></p>
+        <div id="gauge"></div>
+      </div>
+      <div id="msgs"></div>
+      <dl class="stats" id="stats"></dl>
+
+      <figure>
+        <div class="profile" id="profile"></div>
+        <figcaption id="cap">Perfil do vão, linha vermelha é a visada tangente ao cabo.</figcaption>
+      </figure>
+
+      <details id="det">
+        <summary>Passos do cálculo</summary>
+        <div class="tablewrap"><table><thead><tr><th>Grandeza</th><th>Fórmula</th><th style="text-align:right">Valor</th></tr></thead><tbody id="steps"></tbody></table></div>
+      </details>
+
+      <div class="notes" id="notes"></div>
+    </section>
+  </div>
+</div>
+
+<button type="button" class="dock" id="dock" aria-label="Ir para os resultados">
+  <span><span class="dl" id="dock-l1"></span><span class="dv" id="dock-v1">–</span></span>
+  <span style="text-align:right"><span class="dl" id="dock-l2">Flecha medida</span><span class="dv" id="dock-v2">–</span></span>
+</button>
+</div>
+<script type="module" src="/src/main.js"></script>
+</body></html>
