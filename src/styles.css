@@ -190,3 +190,11 @@ td.f{font-family:Georgia,'Times New Roman',serif;font-style:italic;color:var(--m
   .combo-count{margin:6px 12px}
   #tipo-list li{padding:9px 10px}
 }
+
+/* Faixas (versão nova, dica de instalação) */
+.banner{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:50;
+  display:flex;gap:12px;align-items:center;justify-content:space-between;
+  background:var(--ink);color:var(--paper);border-radius:8px;padding:12px 14px;box-shadow:0 6px 24px rgba(0,0,0,.25);font-size:.95rem}
+.banner + .banner{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+.banner-btn{flex:none;background:var(--mark);color:#14213D;border:0;border-radius:6px;padding:8px 12px;font:inherit;font-weight:600;cursor:pointer}
+@media (min-width:700px){.banner{left:auto;max-width:460px}}
