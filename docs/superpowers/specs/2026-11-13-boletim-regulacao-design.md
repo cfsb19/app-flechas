@@ -1,6 +1,6 @@
 # Boletim do vão, regulação e flecha teórica pela temperatura
 
-Data: 2026-11-13 · Estado: proposta para aprovação · Parte da base: ramo `claude/pwa-apk` (PR #1)
+Data: 2026-11-13 · Estado: proposta para aprovação (perguntas do revisor respondidas) · Parte da base: ramo `claude/pwa-apk` (PR #1)
 
 ## Intenção e porquê
 
@@ -105,6 +105,11 @@ No terreno, o Batista regista os 8 cabos de um vão de cada vez, como na app exi
   - Aplica-se nos dois modos.
   - Quando `Tc` é múltiplo de 5, a app pede um só valor da tabela.
 - **Histórico e CSV:** guardam a temperatura local, as correções e a temperatura de cálculo de cada grupo.
+- **Desnível do perfil (método português):** é **um só valor para o vão**, aplicado a todos os cabos.
+- **Flecha teórica ou parâmetro:** o CG1 e o CG2, e os condutores entre si, **podem ter valores diferentes**.
+  - O valor do grupo (CC ou CG), direto ou pela tabela, pré-preenche cada cabo.
+  - Cada cabo pode ter o seu próprio valor, também direto ou pela tabela, e esse valor substitui o do grupo.
+  - O cabo com valor próprio fica marcado.
 
 ## Decisões tomadas por mim (podem ser corrigidas)
 
