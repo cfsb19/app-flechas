@@ -1,9 +1,8 @@
-// Configuração web do projeto Firebase. Estes valores não são secretos (vão sempre no código da app).
-// Preencher com os valores de Consola Firebase → Definições do projeto → As tuas apps → Web.
-// Ver docs/configuracao.md.
+// Configuração web do projeto Firebase "flechas-cabos". Estes valores não são secretos
+// (vão sempre no código da app). Ver docs/configuracao.md.
 export const firebaseConfig = {
-  apiKey: 'PREENCHER',
-  authDomain: 'PREENCHER',
-  projectId: 'PREENCHER',
-  appId: 'PREENCHER',
+  apiKey: 'AIzaSyBAdRt9IZ9nd2VTO7GPoZ5tDuf17AGkFbo',
+  authDomain: 'flechas-cabos.firebaseapp.com',
+  projectId: 'flechas-cabos',
+  appId: '1:990000048499:web:62ad5b311bb462cefcfd06',
 };

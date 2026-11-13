@@ -28,8 +28,7 @@ export function startGate({ auth, storage = localStorage, now = Date.now, onUnlo
     $('checking').hidden = true;
     $('login').hidden = which !== 'login';
     $('locked').hidden = which !== 'locked';
-    $('calc').hidden = which !== 'app';
-    $('account').hidden = which !== 'app';
+    $('app').hidden = which !== 'app';
     const m = which === 'login' ? $('login-msg') : which === 'locked' ? $('locked-msg') : null;
     if (m) { m.textContent = msg; m.classList.toggle('info', info); }
   }

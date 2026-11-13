@@ -1,21 +1,30 @@
 // Interface da calculadora (extraída de app/calculadora-flechas.html).
 // O cálculo vem do núcleo validado; aqui só há leitura do formulário, validação e desenho.
 import { G2R, solveTangent, solveParam, pFromSag, flechaInternacional, flechaPortugues } from '../../core/flechas-core.mjs';
-import { parseNum, fmt, fmtIn, sfmt } from '../num.js';
+import { parseNum, fmt, fmtIn, sfmt, fmtT } from '../num.js';
+import { computeCabo } from './compute.js';
+import { gaugeHTML } from './gauge.js';
+import { CABOS, grupoDoCabo, bracoDoCabo, tempCalculo, linhasTabela, resolverTeorico,
+  temperaturaDoDia, lembrarTemperatura, lerCorrecoes, guardarCorrecoes, hojeISO } from './temperatura.js';
+
+const numStr = x => (Number.isFinite(x) ? String(x) : '');
 import { POSTES_ROWS } from './tipos.js';
 
 /** Resumo do último resultado com veredicto, para guardar no histórico. */
 export function resultSummary(R) {
-  if (!R || !R.verdict || !R.theo) return null;
-  return { M: R.M, a: R.a, ft: R.theo.ft, flecha: R.verdict.f, desvio: R.verdict.dev, conforme: R.verdict.ok, p: R.meas.p };
+  if (!R) return null;
+  const base = { M: R.M, modo: R.modo || 'ver', cabo: R.cabo, tLocal: R.tLocal, tc: R.tc, a: R.a };
+  if (R.modo === 'reg' && R.reg) return { ...base, ft: R.reg.f, flecha: R.reg.f, p: R.reg.p, z: R.reg.z, zMin: R.reg.zMin, zMax: R.reg.zMax, reg: R.reg };
+  if (!R.verdict || !R.theo) return null;
+  return { ...base, ft: R.theo.ft, flecha: R.verdict.f, desvio: R.verdict.dev, conforme: R.verdict.ok, p: R.meas.p };
 }
 
 /** onRender: chamado depois de cada recálculo (ex.: para ativar "Guardar medição"). */
 export function mountCalc(root, { onRender } = {}) {
   const $ = id => document.getElementById(id);
-  const IDS = ['a','dp','t','tipo','ponto','H','HS','perna','cad','z1','z2','cota','F','zf','z','temp','ft','tolA','tolB'];
+  const IDS = ['cabo','a','dp','t','tipo','ponto','H','HS','perna','cad','z1','z2','cota','F','zf','z','temp','ft','preg','tolA','tolB'];
   const KEY = 'flechas-verificacao-v3';
-  const DEFAULTS = {method:'int', a:'', dp:'', t:'', tipo:'', ponto:'sup', H:'', HS:'', perna:'', cad:'', z1:'', z2:'', cota:'', F:'', zf:'', z:'', temp:'', ft:'', tolA:'2,5', tolB:'1,5'};
+  const DEFAULTS = {method:'int', modo:'ver', cabo:'CC1', preg:'', teorTipo:'direta', teorTab:{}, pregTipo:'direta', pregTab:{}, a:'', dp:'', t:'', tipo:'', ponto:'sup', H:'', HS:'', perna:'', cad:'', z1:'', z2:'', cota:'', F:'', zf:'', z:'', temp:'', ft:'', tolA:'2,5', tolB:'1,5'};
   const EX_INT = {a:'425,48', t:'60', z1:'59,5046', z2:'81,6059', z:'82,1749', temp:'20', ft:'13,50'};
   const EX_PT = {a:'417,36', dp:'', tipo:'YLS2e', ponto:'sup', H:'31,55', HS:'0,689', perna:'0', cad:'4,24', cota:'5', F:'-350,56', zf:'97,673', z:'98,844', temp:'18', ft:'14,83'};
   const NAMES = {a:'o comprimento do vão', t:'a distância de visada', z1:'o desnível 1', z2:'o desnível 2',
@@ -29,11 +38,48 @@ export function mountCalc(root, { onRender } = {}) {
 
   function listPt(arr){ return arr.length < 2 ? arr.join('') : arr.slice(0, -1).join(', ') + ' e ' + arr[arr.length - 1]; }
   const method = () => document.querySelector('input[name=method]:checked').value;
-  function getState(){ const s = {method: method()}; IDS.forEach(id => s[id] = $(id).value); return s; }
+  const modoAtual = () => (document.querySelector('input[name=modo]:checked') || {}).value === 'reg' ? 'reg' : 'ver';
+  // Flecha teórica / parâmetro: direta ou pela tabela (valores por temperatura, guardados por T).
+  const teor = { teorTipo:'direta', teorTab:{}, pregTipo:'direta', pregTab:{} };
+  const tipoKey = () => modoAtual() === 'reg' ? 'pregTipo' : 'teorTipo';
+  const tabKey = () => modoAtual() === 'reg' ? 'pregTab' : 'teorTab';
+  function getState(){
+    const s = {method: method(), modo: modoAtual()}; IDS.forEach(id => s[id] = $(id).value);
+    s.teorTipo = teor.teorTipo; s.pregTipo = teor.pregTipo;
+    s.teorTab = Object.assign({}, teor.teorTab); s.pregTab = Object.assign({}, teor.pregTab);
+    return s;
+  }
   function setState(s){
     document.querySelector(`input[name=method][value=${s.method === 'pt' ? 'pt' : 'int'}]`).checked = true;
+    if(s.modo) document.querySelector(`input[name=modo][value=${s.modo === 'reg' ? 'reg' : 'ver'}]`).checked = true;
     IDS.forEach(id => { if(s[id] !== undefined) $(id).value = s[id]; });
     if(!$('ponto').value) $('ponto').value = 'sup';
+    if(!CABOS.includes($('cabo').value)) $('cabo').value = 'CC1';
+    teor.teorTipo = s.teorTipo === 'tabela' ? 'tabela' : 'direta';
+    teor.pregTipo = s.pregTipo === 'tabela' ? 'tabela' : 'direta';
+    teor.teorTab = Object.assign({}, s.teorTab || {}); teor.pregTab = Object.assign({}, s.pregTab || {});
+    syncCorr();
+    if(s.corr != null && s.corr !== '') $('corr').value = s.corr; // medição reaberta: a correção que foi usada
+  }
+  const grupo = () => grupoDoCabo($('cabo').value);
+  function syncCorr(){ $('corr').value = lerCorrecoes(localStorage)[grupo()]; }
+  let tabTemps = '';
+  /** Campos da tabela para as temperaturas pedidas; recria só quando as temperaturas mudam. */
+  function renderTeor(tc){
+    const reg = modoAtual() === 'reg', tipo = teor[tipoKey()], tab = teor[tabKey()];
+    $('teor-lbl').textContent = reg ? 'Parâmetro' : 'Flecha teórica';
+    $(tipo === 'tabela' ? 'teor-tabela' : 'teor-direta').checked = true;
+    $('ft-field').hidden = reg || tipo === 'tabela';
+    $('preg-field').hidden = !reg || tipo === 'tabela';
+    $('teor-tab').hidden = tipo !== 'tabela';
+    $('z').closest('.field').hidden = reg;
+    if(tipo !== 'tabela') return;
+    const L = linhasTabela(tc), key = (reg ? 'p' : 'f') + L.join('|');
+    if(key === tabTemps) return;
+    tabTemps = key;
+    if(!L.length){ $('teor-tab').innerHTML = '<p class="hint">Indica a temperatura local para usar a tabela.</p>'; return; }
+    $('teor-tab').innerHTML = L.map(T => `<div class="field"><label for="tab-${T}">${reg ? 'Parâmetro' : 'Flecha'} a ${fmtT(T)} °C</label>
+      <div class="box"><input id="tab-${T}" data-t="${T}" inputmode="decimal" autocomplete="off" value="${String(tab[String(T)] ?? '').replace(/"/g, '&quot;')}"><span class="unit">m</span></div></div>`).join('');
   }
 
 
@@ -49,135 +95,6 @@ export function mountCalc(root, { onRender } = {}) {
     const h = info.row[COL[$('ponto').value]];
     $('H').value = h == null ? '' : fmtIn(h);
     $('HS').value = info.row[5] == null ? '' : fmtIn(info.row[5]);
-  }
-
-  function compute(S){
-    const v = {}; IDS.forEach(id => v[id] = parseNum(S[id]));
-    const M = S.method;
-    const R = {M, errors:[], warns:[], bad:new Set(), steps:[], v};
-    R.tolA = (isFinite(v.tolA) && v.tolA >= 0) ? v.tolA : 2.5;
-    R.tolB = (isFinite(v.tolB) && v.tolB >= 0) ? v.tolB : 1.5;
-    ['tolA','tolB'].forEach(id => { if(S[id].trim() && !(v[id] >= 0)) R.bad.add(id); });
-    const optional = M === 'pt' ? ['z','temp','ft','dp','perna'] : ['z','temp','ft'];
-    optional.forEach(id => { if(S[id].trim() && !isFinite(v[id])){ R.bad.add(id); R.errors.push('Há um valor que não é um número. Usa vírgula para as décimas.'); } });
-
-    const need = M === 'pt' ? ['a','H','HS','cad','cota','F'].concat(isFinite(v.dp) ? [] : ['zf']) : ['a','t','z1','z2'];
-    const miss = need.filter(id => !isFinite(v[id]));
-    miss.forEach(id => { if(S[id].trim()) R.bad.add(id); });
-    if(miss.length){ R.missing = miss.map(id => NAMES[id]); R.errors = [...new Set(R.errors)]; return R; }
-    if(!(v.a > 0)){ R.bad.add('a'); R.errors.push('O comprimento do vão tem de ser maior que zero.'); }
-    ['z1','z2','zf','z'].forEach(id => { if(need.includes(id) || id === 'z'){ if(isFinite(v[id]) && !(v[id] > 0 && v[id] < 200)){ R.bad.add(id); R.errors.push('As leituras zenitais têm de estar entre 0 e 200 grad.'); } } });
-    if(isFinite(v.ft) && !(v.ft > 0)){ R.bad.add('ft'); R.errors.push('A flecha teórica tem de ser maior que zero.'); }
-
-    let a = v.a, t, d, h;
-    if(M === 'int'){
-      if(!(v.t > 0)){ R.bad.add('t'); R.errors.push('A distância de visada tem de ser maior que zero.'); }
-      if(R.errors.length){ R.errors = [...new Set(R.errors)]; return R; }
-      const D1 = v.t * Math.tan((100 - v.z1) * G2R), D2 = (a + v.t) * Math.tan((100 - v.z2) * G2R);
-      t = v.t; d = D2 - D1; h = D1;
-      R.steps.push(['Desnível ao apoio 1, Desn₁', 't·tan(π/200·(100 − Z₁))', fmt(D1,3) + ' m'],
-                   ['Desnível ao apoio 2, Desn₂', '(a + t)·tan(π/200·(100 − Z₂))', fmt(D2,3) + ' m'],
-                   ['Desnível do vão, d', 'Desn₂ − Desn₁', fmt(d,3) + ' m']);
-      if(!(h > 0)) R.warns.push('O apoio 1 fica abaixo do teodolito. Confirma a leitura Z₁.');
-    } else {
-      if(!(a - v.F > 0)){ R.bad.add('F'); R.errors.push('Com esta distância de visada o teodolito fica para lá do apoio oposto. Confirma o sinal: negativa com o teodolito atrás do apoio de estação.'); }
-      if(R.errors.length){ R.errors = [...new Set(R.errors)]; return R; }
-      const perna = isFinite(v.perna) ? v.perna : 0;
-      h = v.H - v.HS - v.cad - v.cota + perna;
-      t = -v.F;
-      R.steps.push(['Fixação na estação sobre o teodolito, S', 'H − HS − cadeia − cota + perna', fmt(h,3) + ' m']);
-      if(isFinite(v.dp)){
-        d = v.dp;
-        R.steps.push(['Desnível do vão, d', 'desnível do perfil', fmt(d,3) + ' m']);
-      } else {
-        d = (a - v.F) * Math.tan((100 - v.zf) * G2R) - h;
-        R.steps.push(['Desnível do vão, d', '(a − F)·tan(π/200·(100 − Z_f)) − S', fmt(d,3) + ' m']);
-      }
-      if(!(h > 0)) R.warns.push('O ponto de fixação no apoio de estação fica abaixo do teodolito. Confirma H, cadeia e cota.');
-    }
-    Object.assign(R, {a, t, d, h, geoOK:true});
-    const fn = M === 'pt' ? flechaPortugues : flechaInternacional;
-    const devOf = (f, ft) => M === 'pt' ? 1 - ft / f : (f - ft) / ft;
-    const sagName = M === 'pt' ? 'p·(cosh(a/2p) − 1)·√(1 + (d/AU)²)' : 'a·√(a² + d²)/(8p)·(1 + (a² + d²)/(48p²))';
-
-    // Flecha teórica: leitura esperada e intervalo conforme
-    if(isFinite(v.ft)){
-      const ft = v.ft, A = R.tolA / 100, B = R.tolB / 100;
-      const fLo = M === 'pt' ? ft / (1 + A) : ft * (1 - A);
-      const fHi = M === 'pt' ? ft / (1 - B) : ft * (1 + B);
-      const pT = pFromSag(fn, a, d, ft);
-      const sT = isFinite(pT) ? solveTangent(a, d, pT, t, h) : null;
-      if(!sT || sT.above){
-        R.errors.push('Com esta geometria não há visada tangente ao cabo. Confirma a distância de visada e os desníveis.');
-      } else {
-        const zAt = f => { const pp = pFromSag(fn, a, d, f); if(!isFinite(pp)) return NaN; const s = solveTangent(a, d, pp, t, h); return s.above ? NaN : s.zen; };
-        const zLo = zAt(fLo), zHi = zAt(fHi);
-        R.theo = {ft, fLo, fHi, pT, sT, zT: sT.zen, zMin: Math.min(zLo, zHi), zMax: Math.max(zLo, zHi)};
-        if(sT.u < 0 || sT.u > a) R.warns.push(`Com a flecha teórica, a visada toca o cabo a ${fmt(sT.u,0)} m do apoio ${M === 'pt' ? 'de estação' : '1'}, fora do vão. Afasta ou aproxima o teodolito.`);
-        R.steps.push(['Parâmetro teórico, p₀', 'flecha(p₀) = flecha teórica', fmt(pT,1) + ' m'],
-                     ['Leitura esperada, Z₀', 'visada tangente com p₀', fmt(sT.zen,4) + ' grad'],
-                     ['Limites da flecha', `−${fmt(R.tolA,1)} % / +${fmt(R.tolB,1)} %`, `${fmt(fLo,3)} a ${fmt(fHi,3)} m`],
-                     ['Leituras conformes', 'visada tangente nos limites', `${fmt(R.theo.zMin,4)} a ${fmt(R.theo.zMax,4)} grad`]);
-      }
-    }
-
-    // Medição
-    if(isFinite(v.z) && !R.errors.length){
-      const sp = solveParam(a, d, t, h, v.z);
-      if(!sp.best){
-        R.bad.add('z');
-        R.errors.push('Esta visada ao seio do cabo não fica tangente ao cabo dentro do vão com nenhum parâmetro. Confirma as leituras.');
-      } else {
-        const p = sp.best.p, s = solveTangent(a, d, p, t, h), f = fn(a, d, p);
-        if(sp.inside.length > 1) R.warns.push('Há mais de um parâmetro possível com tangência dentro do vão; usa-se o de tangência mais perto do meio.');
-        if(s.u < 0.1 * a || s.u > 0.9 * a) R.warns.push(`A tangência fica a ${fmt(100 * s.u / a,0)} % do vão, perto de um apoio. A leitura é mais sensível: se puderes, ajusta a distância de visada.`);
-        R.meas = {p, s, f, th: Math.atan(Math.sinh(s.X / p))};
-        R.steps.push(['Elevação medida, θ', '100 − Z', fmt(100 - v.z,4) + ' grad'],
-                     ['Parâmetro real, p', 'visada tangente ao cabo', fmt(p,2) + ' m'],
-                     ['Tangência a partir do apoio ' + (M === 'pt' ? 'de estação' : '1'), 'X − X_A', fmt(s.u,1) + ' m'],
-                     ['Flecha medida', sagName, fmt(f,3) + ' m']);
-      }
-    }
-
-    // Sensibilidade a 0,01 grad
-    const zRef = R.meas ? v.z : (R.theo ? R.theo.zT : NaN);
-    if(isFinite(zRef) && !R.errors.length){
-      const fAt = zz => { const sp = solveParam(a, d, t, h, zz); return sp.best ? fn(a, d, sp.best.p) : NaN; };
-      const f0 = fAt(zRef), f1 = fAt(zRef + 0.01), f2 = fAt(zRef - 0.01);
-      R.sens = (Math.abs(f1 - f0) + Math.abs(f2 - f0)) / 2;
-    }
-
-    // Conformidade
-    if(R.meas && R.theo){
-      const f = R.meas.f, dev = devOf(f, R.theo.ft);
-      const lim = dev >= 0 ? R.tolB : R.tolA;
-      R.verdict = {f, dev, diff: f - R.theo.ft, lim, ok: Math.abs(dev) * 100 <= lim + 1e-9};
-      R.steps.push(['Desvio', M === 'pt' ? '1 − teórica / medida' : '(medida − teórica) / teórica', sfmt(dev * 100,2) + ' %']);
-    }
-
-    const src = R.meas ? {p:R.meas.p, s:R.meas.s, f:R.meas.f} : (R.theo && !R.errors.length ? {p:R.theo.pT, s:R.theo.sT, f:R.theo.ft} : null);
-    if(src && !R.errors.length) R.drawObj = {ok:true, M, a, t, d, h, p:src.p, geo:{XA:src.s.XA, YA:src.s.YA}, tan:{u:src.s.u, th:Math.atan(Math.sinh(src.s.X / src.p))}, sag:{fDoc:src.f}};
-    R.errors = [...new Set(R.errors)];
-    return R;
-  }
-
-  function gaugeHTML(R){
-    const devPct = R.verdict.dev * 100, A = R.tolA, B = R.tolB;
-    const lo = Math.min(-A - 1, devPct - 0.8), hi = Math.max(B + 1, devPct + 0.8);
-    const pos = x => (x - lo) / (hi - lo) * 100;
-    const pin = Math.min(94, Math.max(6, pos(devPct)));
-    return `<div class="gauge" role="img" aria-label="Desvio de ${sfmt(devPct,1)} %, tolerância de −${fmt(A,1)} % a +${fmt(B,1)} %">
-      <div class="track">
-        <div class="band" style="left:${pos(-A)}%;width:${pos(B) - pos(-A)}%"></div>
-        <div class="zero" style="left:${pos(0)}%"></div>
-        <div class="pin" style="left:${pin}%">${sfmt(devPct,1)} %</div>
-      </div>
-      <span class="tick" style="left:${pos(-A)}%">−${fmt(A,1)} %</span>
-      <span class="tick" style="left:${pos(0)}%">0</span>
-      <span class="tick" style="left:${pos(B)}%">+${fmt(B,1)} %</span>
-      <span class="side" style="left:0">cabo mais alto</span>
-      <span class="side" style="right:0">cabo mais baixo</span>
-    </div>`;
   }
 
   const NOTES = {
@@ -200,7 +117,14 @@ export function mountCalc(root, { onRender } = {}) {
     const ti = tipoInfo(); $('tipo-hint').textContent = ti.msg; $('tipo-hint').className = 'hint' + (ti.row ? ' info' : '');
     $('notes').innerHTML = NOTES[M];
 
-    const R = compute(S); lastR = R;
+    const tLocal = parseNum(S.temp), tc = tempCalculo(tLocal, parseNum($('corr').value));
+    $('corr-lbl').textContent = `Correção de temperatura (${grupo()})`;
+    $('tc').textContent = Number.isFinite(tc) ? `Temperatura de cálculo ${fmtT(tc)} °C` : 'Temperatura de cálculo –';
+    renderTeor(tc);
+    const S2 = Object.assign({}, S);
+    if(S.teorTipo === 'tabela') S2.ft = numStr(resolverTeorico({tipo:'tabela', tabela:S.teorTab}, tc));
+    if(S.pregTipo === 'tabela') S2.preg = numStr(resolverTeorico({tipo:'tabela', tabela:S.pregTab}, tc));
+    const R = computeCabo(S2); R.tLocal = tLocal; R.tc = tc; R.cabo = S.cabo; lastR = R;
     IDS.forEach(id => $(id).setAttribute('aria-invalid', R.bad.has(id) ? 'true' : 'false'));
     $('tol-sum').textContent = `Tolerâncias: cabo mais alto −${fmt(R.tolA,1)} %, mais baixo +${fmt(R.tolB,1)} %`;
     $('msgs').innerHTML = R.errors.map(m => `<p class="msg err">${m}</p>`).concat(R.warns.map(m => `<p class="msg warn">${m}</p>`)).join('');
@@ -221,6 +145,10 @@ export function mountCalc(root, { onRender } = {}) {
       sub = `Teórica ${fmt(R.theo.ft,2)} m. ${where}, ${V.ok ? 'dentro' : 'fora'} do limite de ${V.dev >= 0 ? '+' : '−'}${fmt(V.lim,1)} %.`;
       gauge = gaugeHTML(R);
       d1l = 'Resultado'; d1v = V.ok ? 'Conforme' : 'Não conforme'; d2v = `${fmt(V.f,2)} m`;
+    } else if(R.reg){
+      lbl = 'Leitura a apontar'; big = `${fmt(R.reg.z,4)}<small>grad</small>`;
+      sub = `Conforme com leituras entre ${fmt(R.reg.zMin,4)} e ${fmt(R.reg.zMax,4)} grad. Flecha correspondente ${fmt(R.reg.f,2)} m.`;
+      d1l = 'Leitura a apontar'; d1v = `${fmt(R.reg.z,4)} grad`; d2v = `${fmt(R.reg.f,2)} m`;
     } else if(R.theo){
       lbl = 'Leitura esperada no seio do cabo'; big = `${fmt(R.theo.zT,4)}<small>grad</small>`;
       sub = `Conforme com leituras entre ${fmt(R.theo.zMin,4)} e ${fmt(R.theo.zMax,4)} grad. Introduz a visada medida para verificar.`;
@@ -243,7 +171,8 @@ export function mountCalc(root, { onRender } = {}) {
       if(R.meas) st.push(`<div><dt>Parâmetro real</dt><dd>${fmt(R.meas.p,1)} m<span>tangência a ${fmt(R.meas.s.u,1)} m do ${ref}</span></dd></div>`);
       st.push(`<div><dt>Desnível do vão</dt><dd>${fmt(R.d,2)} m<span>fixação no ${ref} a ${fmt(R.h,2)} m acima do teodolito</span></dd></div>`);
       if(isFinite(R.sens)) st.push(`<div><dt>Erro de 0,01 grad em Z</dt><dd>≈ ${fmt(R.sens * 100,0)} cm<span>de variação na flecha</span></dd></div>`);
-      if(isFinite(R.v.temp)) st.push(`<div><dt>Temperatura</dt><dd>${fmt(R.v.temp,1)} °C<span>registada na medição</span></dd></div>`);
+      if(isFinite(R.v.temp)) st.push(`<div><dt>Temperatura</dt><dd>${fmtT(R.v.temp)} °C<span>${Number.isFinite(R.tc) && R.tc !== R.v.temp ? 'de cálculo ' + fmtT(R.tc) + ' °C (' + grupo() + ')' : 'registada na medição'}</span></dd></div>`);
+      if(R.reg) st.push(`<div><dt>Parâmetro</dt><dd>${fmt(R.reg.p,1)} m<span>flecha ${fmt(R.reg.f,3)} m</span></dd></div>`);
     }
     $('stats').innerHTML = st.join('');
     $('steps').innerHTML = (R.geoOK && !R.errors.length) ? R.steps.map(r => `<tr><td>${r[0]}</td><td class="f">${r[1]}</td><td class="v">${r[2]}</td></tr>`).join('') : '';
@@ -329,6 +258,7 @@ export function mountCalc(root, { onRender } = {}) {
   }
 
   setState(load());
+  if(!$('temp').value) $('temp').value = temperaturaDoDia(localStorage, hojeISO());
   document.querySelectorAll('input:not([type=radio])').forEach(el => el.addEventListener('input', render));
   document.querySelectorAll('input[type=radio]').forEach(el => el.addEventListener('change', render));
 
@@ -405,10 +335,32 @@ export function mountCalc(root, { onRender } = {}) {
   document.addEventListener('keydown', e => { if(e.key === 'Escape' && !$('tipo-panel').hidden) closeTipo(true); });
   $('ponto').addEventListener('change', () => { applyTipo(); render(); });
   $('ex').addEventListener('click', () => { const M = method(); setState(Object.assign(getState(), M === 'pt' ? EX_PT : EX_INT)); render(); });
-  $('new').addEventListener('click', () => { const keep = {tolA:$('tolA').value, tolB:$('tolB').value, method:method()}; setState(Object.assign({}, DEFAULTS, keep)); render(); $('a').focus(); });
+  $('new').addEventListener('click', () => {
+    const keep = {tolA:$('tolA').value, tolB:$('tolB').value, method:method(), modo:modoAtual(), cabo:$('cabo').value,
+      teorTipo:teor.teorTipo, pregTipo:teor.pregTipo, temp:temperaturaDoDia(localStorage, hojeISO())};
+    setState(Object.assign({}, DEFAULTS, keep)); tabTemps = '';
+    if(method() === 'pt'){ $('ponto').value = bracoDoCabo($('cabo').value); applyTipo(); }
+    render(); $('a').focus();
+  });
+  // Cabo: escolhe a correção de temperatura do grupo e, no método português, o braço do apoio.
+  $('cabo').addEventListener('change', () => {
+    if(method() === 'pt'){ $('ponto').value = bracoDoCabo($('cabo').value); applyTipo(); }
+    syncCorr(); render();
+  });
+  document.querySelectorAll('input[name=method]').forEach(el => el.addEventListener('change', () => {
+    if(method() === 'pt' && $('ponto').value !== bracoDoCabo($('cabo').value)){ $('ponto').value = bracoDoCabo($('cabo').value); applyTipo(); render(); }
+  }));
+  $('corr').addEventListener('input', () => { guardarCorrecoes(localStorage, Object.assign(lerCorrecoes(localStorage), {[grupo()]: $('corr').value})); render(); });
+  $('temp').addEventListener('input', () => lembrarTemperatura(localStorage, $('temp').value, hojeISO()));
+  document.querySelectorAll('input[name=teorTipo]').forEach(el => el.addEventListener('change', () => { teor[tipoKey()] = el.value; tabTemps = ''; render(); }));
+  document.querySelectorAll('input[name=modo]').forEach(el => el.addEventListener('change', () => { tabTemps = ''; render(); }));
+  $('teor-tab').addEventListener('input', e => { const t = e.target.dataset && e.target.dataset.t; if(t == null) return; teor[tabKey()][t] = e.target.value; render(); });
   $('next').addEventListener('click', () => {
     const ids = method() === 'pt' ? ['zf','z'] : ['z1','z2','z'];
-    ids.forEach(id => $(id).value = ''); render(); $(ids[0]).focus();
+    ids.forEach(id => $(id).value = '');
+    const i = CABOS.indexOf($('cabo').value);
+    if(i >= 0 && i < CABOS.length - 1){ $('cabo').value = CABOS[i + 1]; $('cabo').dispatchEvent(new Event('change')); }
+    render(); $(ids[0]).focus();
   });
   $('dock').addEventListener('click', () => $('out').scrollIntoView({behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'}));
   let lastW = 0;

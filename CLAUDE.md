@@ -15,9 +15,10 @@ Uma app de campo que, a partir das leituras do teodolito, calcula a flecha real 
 
 ## Estado atual
 
-- **App (PWA + APK):** `index.html` + `src/`, construída com Vite. Calculadora do protótipo em `src/calc/app.js` (usa o núcleo, sem cópias do cálculo), login e prazo offline em `src/access/`, histórico local (IndexedDB, exportação JSON/CSV) em `src/history/`, APK com Capacitor em `android/`. Design: `docs/superpowers/specs/2026-11-13-app-flechas-pwa-apk-design.md`. Configuração e instalação: `docs/configuracao.md`.
+- **App (PWA + APK):** `index.html` + `src/`, construída com Vite. Vistas "Cabo a cabo" (`src/calc/app.js`) e "Boletim do vão" (`src/boletim/`), modos Verificação e Regulação; o cálculo de um cabo é `computeCabo` em `src/calc/compute.js` (usa o núcleo, sem cópias do cálculo), temperatura e interpolação em `src/calc/temperatura.js`, login e prazo offline em `src/access/`, histórico local (IndexedDB, exportação JSON/CSV) em `src/history/`, APK com Capacitor em `android/`. Design: `docs/superpowers/specs/2026-11-13-app-flechas-pwa-apk-design.md`. Configuração e instalação: `docs/configuracao.md`.
 - `core/flechas-core.mjs`: o cálculo isolado da interface, com testes. `npm test` (unitários) e `npm run e2e` (Playwright, com login falso `VITE_AUTH=fake`).
-- `app/calculadora-flechas.html`: protótipo antigo de ficheiro único (Documents by Readdle). Já não é atualizado.
+- **Cópia num único ficheiro HTML, sem login** (decisão do Batista, só para uso dele): `npm run build:html` gera `dist-local/flechas.html` (modo Vite `ficheiro`, `VITE_AUTH=none`, sem service worker; `scripts/inline-html.mjs` embute JS, CSS e fontes). O CI guarda-o como artefacto `flechas-html`; **nunca** é publicado no alojamento.
+- `app/calculadora-flechas.html`: protótipo antigo de ficheiro único (Documents by Readdle). Já não é atualizado; substituído pela cópia acima.
 - `calculadora/flechas_nspire.txt`: versão em TI-Basic para a TI-Nspire CX CAS, com a tabela de apoios embutida. Validada por tradução automática para Python; ainda não testada na calculadora.
 - `data/postes.json`: tabela de 485 tipos de apoio extraída da folha LBL.
 - `referencia/`: documento Word original (com erros, ver abaixo), folha Excel LBL do método português e foto de uma app existente.
@@ -47,6 +48,13 @@ Método português (folha LBL; F negativo para fora do vão, `t = −F`):
 
 Tolerâncias: cabo mais alto (flecha menor) até −2,5 %; cabo mais baixo (flecha maior) até +1,5 %.
 
+Temperatura e tabela de regulação (confirmado pelo Batista):
+- Temperatura local escrita à mão; a app propõe a última escrita no mesmo dia.
+- Correção de temperatura = correção de **fluência**, diferente para CC e CG: `Tc = Tlocal − correção`.
+- Flecha teórica (verificação) ou parâmetro (regulação): direta ou pela tabela. Se `Tc` é múltiplo de 5 pede-se só esse valor; senão pedem-se os de `5·⌊Tc/5⌋` e `+5` e interpola-se linearmente.
+- Regulação: parâmetro p → leitura Z a apontar (visada tangente com p), intervalo de leituras conformes e flecha correspondente.
+- Boletim do vão: 8 cabos (CC1–CC6, CG1, CG2). Comum ao vão: geometria, temperatura, correções, desnível do perfil (um só valor). Flecha/parâmetro por grupo (CC, CG) com valor próprio opcional por cabo.
+
 ## Armadilhas já resolvidas
 
 - O documento Word tem um passo errado ("X* ≈ 4506 m"); o 79,2552 grad é a leitura zenital, não a elevação. A diferença de sinal de t entre os dois métodos não é erro: é a convenção F negativo da folha.
@@ -57,8 +65,6 @@ Tolerâncias: cabo mais alto (flecha menor) até −2,5 %; cabo mais baixo (flec
 
 ## Questões em aberto e próximos passos
 
-- A app existente da foto organiza o trabalho em passos (Terreno → Poste → Cabos → Resultados → Resumo) e regista os 8 cabos de um vão de uma vez (CC1–CC6, CG1, CG2). Avaliar o mesmo modelo: um boletim por vão em vez de um cabo de cada vez.
-- Essa app tem "Correção Temperatura" e "Flecha Teórica Supra/Infra" (interpolação entre temperaturas da tabela?). O significado ainda não foi confirmado; perguntar ao utilizador antes de implementar.
 - Relatório em PDF gerado no aparelho (o histórico já exporta JSON e CSV).
 
 ## Forma de trabalhar com o utilizador
