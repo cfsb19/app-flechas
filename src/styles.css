@@ -239,3 +239,16 @@ button.link:disabled{opacity:.5;cursor:not-allowed}
 .hist-btns{display:flex;gap:8px}
 .hist-import-btn{position:relative;overflow:hidden;cursor:pointer}
 .hist-import-btn input{position:absolute;inset:0;opacity:0;cursor:pointer}
+
+/* Barra de vista e modo; temperatura */
+.appbar{display:flex;flex-wrap:wrap;gap:8px 16px;max-width:1180px;margin:0 auto;padding:10px 16px 0}
+.appbar .seg{margin:0;flex:1 1 280px}
+.seg-sm label,.seg-btn button{padding:10px 8px;min-height:44px;font-size:.98rem}
+.seg-btn button{flex:1;font:inherit;font-weight:600;font-family:'Barlow Semi Condensed','Barlow',system-ui,sans-serif;background:none;color:var(--ink);border:0;cursor:pointer}
+.seg-btn button:not(:first-child){border-left:1.5px solid var(--ink)}
+.seg-btn button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.seg-btn button:focus-visible{outline:3px solid var(--mark);outline-offset:-4px}
+.tc{margin:4px 0 10px;font-weight:600;font-variant-numeric:tabular-nums}
+.lbl{display:block;font-weight:600;margin-bottom:6px}
+.teor-tab .field label{font-variant-numeric:tabular-nums}
+@media (pointer:coarse){ input,select,button{min-height:44px} }

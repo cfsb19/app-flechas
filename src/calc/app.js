@@ -3,20 +3,29 @@
 import { G2R, solveTangent, solveParam, pFromSag, flechaInternacional, flechaPortugues } from '../../core/flechas-core.mjs';
 import { parseNum, fmt, fmtIn, sfmt } from '../num.js';
 import { computeCabo } from './compute.js';
+import { CABOS, grupoDoCabo, bracoDoCabo, tempCalculo, linhasTabela, resolverTeorico,
+  temperaturaDoDia, lembrarTemperatura, lerCorrecoes, guardarCorrecoes, hojeISO } from './temperatura.js';
+
+/** Temperatura sem casas decimais desnecessárias (17 → "17", 17,5 → "17,5"). */
+export const fmtT = T => (Number.isInteger(Math.round(T * 10) / 10) ? fmt(T, 0) : fmt(T, 1)).replace(/^-/, '−');
+const numStr = x => (Number.isFinite(x) ? String(x) : '');
 import { POSTES_ROWS } from './tipos.js';
 
 /** Resumo do último resultado com veredicto, para guardar no histórico. */
 export function resultSummary(R) {
-  if (!R || !R.verdict || !R.theo) return null;
-  return { M: R.M, a: R.a, ft: R.theo.ft, flecha: R.verdict.f, desvio: R.verdict.dev, conforme: R.verdict.ok, p: R.meas.p };
+  if (!R) return null;
+  const base = { M: R.M, modo: R.modo || 'ver', cabo: R.cabo, tLocal: R.tLocal, tc: R.tc, a: R.a };
+  if (R.modo === 'reg' && R.reg) return { ...base, ft: R.reg.f, flecha: R.reg.f, p: R.reg.p, z: R.reg.z, zMin: R.reg.zMin, zMax: R.reg.zMax, reg: R.reg };
+  if (!R.verdict || !R.theo) return null;
+  return { ...base, ft: R.theo.ft, flecha: R.verdict.f, desvio: R.verdict.dev, conforme: R.verdict.ok, p: R.meas.p };
 }
 
 /** onRender: chamado depois de cada recálculo (ex.: para ativar "Guardar medição"). */
 export function mountCalc(root, { onRender } = {}) {
   const $ = id => document.getElementById(id);
-  const IDS = ['a','dp','t','tipo','ponto','H','HS','perna','cad','z1','z2','cota','F','zf','z','temp','ft','tolA','tolB'];
+  const IDS = ['cabo','a','dp','t','tipo','ponto','H','HS','perna','cad','z1','z2','cota','F','zf','z','temp','ft','preg','tolA','tolB'];
   const KEY = 'flechas-verificacao-v3';
-  const DEFAULTS = {method:'int', a:'', dp:'', t:'', tipo:'', ponto:'sup', H:'', HS:'', perna:'', cad:'', z1:'', z2:'', cota:'', F:'', zf:'', z:'', temp:'', ft:'', tolA:'2,5', tolB:'1,5'};
+  const DEFAULTS = {method:'int', modo:'ver', cabo:'CC1', preg:'', teorTipo:'direta', teorTab:{}, pregTipo:'direta', pregTab:{}, a:'', dp:'', t:'', tipo:'', ponto:'sup', H:'', HS:'', perna:'', cad:'', z1:'', z2:'', cota:'', F:'', zf:'', z:'', temp:'', ft:'', tolA:'2,5', tolB:'1,5'};
   const EX_INT = {a:'425,48', t:'60', z1:'59,5046', z2:'81,6059', z:'82,1749', temp:'20', ft:'13,50'};
   const EX_PT = {a:'417,36', dp:'', tipo:'YLS2e', ponto:'sup', H:'31,55', HS:'0,689', perna:'0', cad:'4,24', cota:'5', F:'-350,56', zf:'97,673', z:'98,844', temp:'18', ft:'14,83'};
   const NAMES = {a:'o comprimento do vão', t:'a distância de visada', z1:'o desnível 1', z2:'o desnível 2',
@@ -30,11 +39,47 @@ export function mountCalc(root, { onRender } = {}) {
 
   function listPt(arr){ return arr.length < 2 ? arr.join('') : arr.slice(0, -1).join(', ') + ' e ' + arr[arr.length - 1]; }
   const method = () => document.querySelector('input[name=method]:checked').value;
-  function getState(){ const s = {method: method()}; IDS.forEach(id => s[id] = $(id).value); return s; }
+  const modoAtual = () => (document.querySelector('input[name=modo]:checked') || {}).value === 'reg' ? 'reg' : 'ver';
+  // Flecha teórica / parâmetro: direta ou pela tabela (valores por temperatura, guardados por T).
+  const teor = { teorTipo:'direta', teorTab:{}, pregTipo:'direta', pregTab:{} };
+  const tipoKey = () => modoAtual() === 'reg' ? 'pregTipo' : 'teorTipo';
+  const tabKey = () => modoAtual() === 'reg' ? 'pregTab' : 'teorTab';
+  function getState(){
+    const s = {method: method(), modo: modoAtual()}; IDS.forEach(id => s[id] = $(id).value);
+    s.teorTipo = teor.teorTipo; s.pregTipo = teor.pregTipo;
+    s.teorTab = Object.assign({}, teor.teorTab); s.pregTab = Object.assign({}, teor.pregTab);
+    return s;
+  }
   function setState(s){
     document.querySelector(`input[name=method][value=${s.method === 'pt' ? 'pt' : 'int'}]`).checked = true;
+    if(s.modo) document.querySelector(`input[name=modo][value=${s.modo === 'reg' ? 'reg' : 'ver'}]`).checked = true;
     IDS.forEach(id => { if(s[id] !== undefined) $(id).value = s[id]; });
     if(!$('ponto').value) $('ponto').value = 'sup';
+    if(!CABOS.includes($('cabo').value)) $('cabo').value = 'CC1';
+    teor.teorTipo = s.teorTipo === 'tabela' ? 'tabela' : 'direta';
+    teor.pregTipo = s.pregTipo === 'tabela' ? 'tabela' : 'direta';
+    teor.teorTab = Object.assign({}, s.teorTab || {}); teor.pregTab = Object.assign({}, s.pregTab || {});
+    syncCorr();
+  }
+  const grupo = () => grupoDoCabo($('cabo').value);
+  function syncCorr(){ $('corr').value = lerCorrecoes(localStorage)[grupo()]; }
+  let tabTemps = '';
+  /** Campos da tabela para as temperaturas pedidas; recria só quando as temperaturas mudam. */
+  function renderTeor(tc){
+    const reg = modoAtual() === 'reg', tipo = teor[tipoKey()], tab = teor[tabKey()];
+    $('teor-lbl').textContent = reg ? 'Parâmetro' : 'Flecha teórica';
+    $(tipo === 'tabela' ? 'teor-tabela' : 'teor-direta').checked = true;
+    $('ft-field').hidden = reg || tipo === 'tabela';
+    $('preg-field').hidden = !reg || tipo === 'tabela';
+    $('teor-tab').hidden = tipo !== 'tabela';
+    $('z').closest('.field').hidden = reg;
+    if(tipo !== 'tabela') return;
+    const L = linhasTabela(tc), key = (reg ? 'p' : 'f') + L.join('|');
+    if(key === tabTemps) return;
+    tabTemps = key;
+    if(!L.length){ $('teor-tab').innerHTML = '<p class="hint">Indica a temperatura local para usar a tabela.</p>'; return; }
+    $('teor-tab').innerHTML = L.map(T => `<div class="field"><label for="tab-${T}">${reg ? 'Parâmetro' : 'Flecha'} a ${fmtT(T)} °C</label>
+      <div class="box"><input id="tab-${T}" data-t="${T}" inputmode="decimal" autocomplete="off" value="${String(tab[String(T)] ?? '').replace(/"/g, '&quot;')}"><span class="unit">m</span></div></div>`).join('');
   }
 
 
@@ -91,7 +136,14 @@ export function mountCalc(root, { onRender } = {}) {
     const ti = tipoInfo(); $('tipo-hint').textContent = ti.msg; $('tipo-hint').className = 'hint' + (ti.row ? ' info' : '');
     $('notes').innerHTML = NOTES[M];
 
-    const R = computeCabo(S); lastR = R;
+    const tLocal = parseNum(S.temp), tc = tempCalculo(tLocal, parseNum($('corr').value));
+    $('corr-lbl').textContent = `Correção de temperatura (${grupo()})`;
+    $('tc').textContent = Number.isFinite(tc) ? `Temperatura de cálculo ${fmtT(tc)} °C` : 'Temperatura de cálculo –';
+    renderTeor(tc);
+    const S2 = Object.assign({}, S);
+    if(S.teorTipo === 'tabela') S2.ft = numStr(resolverTeorico({tipo:'tabela', tabela:S.teorTab}, tc));
+    if(S.pregTipo === 'tabela') S2.preg = numStr(resolverTeorico({tipo:'tabela', tabela:S.pregTab}, tc));
+    const R = computeCabo(S2); R.tLocal = tLocal; R.tc = tc; R.cabo = S.cabo; lastR = R;
     IDS.forEach(id => $(id).setAttribute('aria-invalid', R.bad.has(id) ? 'true' : 'false'));
     $('tol-sum').textContent = `Tolerâncias: cabo mais alto −${fmt(R.tolA,1)} %, mais baixo +${fmt(R.tolB,1)} %`;
     $('msgs').innerHTML = R.errors.map(m => `<p class="msg err">${m}</p>`).concat(R.warns.map(m => `<p class="msg warn">${m}</p>`)).join('');
@@ -112,6 +164,10 @@ export function mountCalc(root, { onRender } = {}) {
       sub = `Teórica ${fmt(R.theo.ft,2)} m. ${where}, ${V.ok ? 'dentro' : 'fora'} do limite de ${V.dev >= 0 ? '+' : '−'}${fmt(V.lim,1)} %.`;
       gauge = gaugeHTML(R);
       d1l = 'Resultado'; d1v = V.ok ? 'Conforme' : 'Não conforme'; d2v = `${fmt(V.f,2)} m`;
+    } else if(R.reg){
+      lbl = 'Leitura a apontar'; big = `${fmt(R.reg.z,4)}<small>grad</small>`;
+      sub = `Conforme com leituras entre ${fmt(R.reg.zMin,4)} e ${fmt(R.reg.zMax,4)} grad. Flecha correspondente ${fmt(R.reg.f,2)} m.`;
+      d1l = 'Leitura a apontar'; d1v = `${fmt(R.reg.z,4)} grad`; d2v = `${fmt(R.reg.f,2)} m`;
     } else if(R.theo){
       lbl = 'Leitura esperada no seio do cabo'; big = `${fmt(R.theo.zT,4)}<small>grad</small>`;
       sub = `Conforme com leituras entre ${fmt(R.theo.zMin,4)} e ${fmt(R.theo.zMax,4)} grad. Introduz a visada medida para verificar.`;
@@ -134,7 +190,8 @@ export function mountCalc(root, { onRender } = {}) {
       if(R.meas) st.push(`<div><dt>Parâmetro real</dt><dd>${fmt(R.meas.p,1)} m<span>tangência a ${fmt(R.meas.s.u,1)} m do ${ref}</span></dd></div>`);
       st.push(`<div><dt>Desnível do vão</dt><dd>${fmt(R.d,2)} m<span>fixação no ${ref} a ${fmt(R.h,2)} m acima do teodolito</span></dd></div>`);
       if(isFinite(R.sens)) st.push(`<div><dt>Erro de 0,01 grad em Z</dt><dd>≈ ${fmt(R.sens * 100,0)} cm<span>de variação na flecha</span></dd></div>`);
-      if(isFinite(R.v.temp)) st.push(`<div><dt>Temperatura</dt><dd>${fmt(R.v.temp,1)} °C<span>registada na medição</span></dd></div>`);
+      if(isFinite(R.v.temp)) st.push(`<div><dt>Temperatura</dt><dd>${fmtT(R.v.temp)} °C<span>${Number.isFinite(R.tc) && R.tc !== R.v.temp ? 'de cálculo ' + fmtT(R.tc) + ' °C (' + grupo() + ')' : 'registada na medição'}</span></dd></div>`);
+      if(R.reg) st.push(`<div><dt>Parâmetro</dt><dd>${fmt(R.reg.p,1)} m<span>flecha ${fmt(R.reg.f,3)} m</span></dd></div>`);
     }
     $('stats').innerHTML = st.join('');
     $('steps').innerHTML = (R.geoOK && !R.errors.length) ? R.steps.map(r => `<tr><td>${r[0]}</td><td class="f">${r[1]}</td><td class="v">${r[2]}</td></tr>`).join('') : '';
@@ -220,6 +277,7 @@ export function mountCalc(root, { onRender } = {}) {
   }
 
   setState(load());
+  if(!$('temp').value) $('temp').value = temperaturaDoDia(localStorage, hojeISO());
   document.querySelectorAll('input:not([type=radio])').forEach(el => el.addEventListener('input', render));
   document.querySelectorAll('input[type=radio]').forEach(el => el.addEventListener('change', render));
 
@@ -296,10 +354,27 @@ export function mountCalc(root, { onRender } = {}) {
   document.addEventListener('keydown', e => { if(e.key === 'Escape' && !$('tipo-panel').hidden) closeTipo(true); });
   $('ponto').addEventListener('change', () => { applyTipo(); render(); });
   $('ex').addEventListener('click', () => { const M = method(); setState(Object.assign(getState(), M === 'pt' ? EX_PT : EX_INT)); render(); });
-  $('new').addEventListener('click', () => { const keep = {tolA:$('tolA').value, tolB:$('tolB').value, method:method()}; setState(Object.assign({}, DEFAULTS, keep)); render(); $('a').focus(); });
+  $('new').addEventListener('click', () => {
+    const keep = {tolA:$('tolA').value, tolB:$('tolB').value, method:method(), modo:modoAtual(), cabo:$('cabo').value,
+      teorTipo:teor.teorTipo, pregTipo:teor.pregTipo, temp:temperaturaDoDia(localStorage, hojeISO())};
+    setState(Object.assign({}, DEFAULTS, keep)); tabTemps = ''; render(); $('a').focus();
+  });
+  // Cabo: escolhe a correção de temperatura do grupo e, no método português, o braço do apoio.
+  $('cabo').addEventListener('change', () => {
+    if(method() === 'pt'){ $('ponto').value = bracoDoCabo($('cabo').value); applyTipo(); }
+    syncCorr(); render();
+  });
+  $('corr').addEventListener('input', () => { guardarCorrecoes(localStorage, Object.assign(lerCorrecoes(localStorage), {[grupo()]: $('corr').value})); render(); });
+  $('temp').addEventListener('input', () => lembrarTemperatura(localStorage, $('temp').value, hojeISO()));
+  document.querySelectorAll('input[name=teorTipo]').forEach(el => el.addEventListener('change', () => { teor[tipoKey()] = el.value; tabTemps = ''; render(); }));
+  document.querySelectorAll('input[name=modo]').forEach(el => el.addEventListener('change', () => { tabTemps = ''; render(); }));
+  $('teor-tab').addEventListener('input', e => { const t = e.target.dataset && e.target.dataset.t; if(t == null) return; teor[tabKey()][t] = e.target.value; render(); });
   $('next').addEventListener('click', () => {
     const ids = method() === 'pt' ? ['zf','z'] : ['z1','z2','z'];
-    ids.forEach(id => $(id).value = ''); render(); $(ids[0]).focus();
+    ids.forEach(id => $(id).value = '');
+    const i = CABOS.indexOf($('cabo').value);
+    if(i >= 0 && i < CABOS.length - 1){ $('cabo').value = CABOS[i + 1]; $('cabo').dispatchEvent(new Event('change')); }
+    render(); $(ids[0]).focus();
   });
   $('dock').addEventListener('click', () => $('out').scrollIntoView({behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'}));
   let lastW = 0;

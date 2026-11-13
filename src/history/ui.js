@@ -55,6 +55,8 @@ export function mountHistory({ calc, history }) {
   // Guardar
   $('save').addEventListener('click', () => {
     try { const last = JSON.parse(localStorage.getItem(LAST) || 'null'); if (last) { $('save-vao').value = last.vao || ''; $('save-cabo').value = last.cabo || 'CC1'; } } catch (e) { /* sem armazenamento */ }
+    const cur = calc.getState();
+    if (cur.cabo) $('save-cabo').value = cur.cabo;
     $('save-msg').textContent = '';
     $('save-dialog').showModal();
     $('save-vao').focus();
