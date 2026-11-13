@@ -3,7 +3,7 @@ import { registerSW } from 'virtual:pwa-register';
 
 const IOS_TIP_KEY = 'flechas-dica-ios-fechada';
 
-function banner(id, text, actionLabel, onAction) {
+export function banner(id, text, actionLabel, onAction) {
   let el = document.getElementById(id);
   if (el) return el;
   el = document.createElement('div');

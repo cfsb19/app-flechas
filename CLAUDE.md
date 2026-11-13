@@ -8,16 +8,17 @@ Uma app de campo que, a partir das leituras do teodolito, calcula a flecha real 
 
 ## Restrições (não negociáveis)
 
-- **Offline e local.** Nada de servidor, nada de chamadas de rede, os dados nunca saem do dispositivo. Entregável preferido: um único ficheiro HTML autossuficiente (JS e CSS embutidos, sem CDN, sem fontes externas).
-- **Sem custos e não público.** Nada de alojamento pago; se houver alojamento, tem de ter controlo de acesso.
-- **Dispositivos:** iPhone pessoal (abre HTML local com o Documents by Readdle) e PC da empresa bloqueado (Edge/Chrome no Windows, sem poder instalar Node/Python). Ferramentas de desenvolvimento (Node para testes) só correm fora desse PC.
-- Em iPhone, `file://` limita o localStorage; uma PWA resolveria a persistência mas exige HTTPS (candidatos: intranet ou Azure Static Web Apps; SharePoint sanitiza JS e não serve).
+- **Medições só no aparelho.** Só o login (Firebase Auth) usa a rede; as medições nunca saem do aparelho; a app funciona offline até 7 dias sem verificação. Nada de CDN nem de fontes externas.
+- **Sem custos.** Firebase plano Spark (Auth + Hosting) e GitHub Actions dentro da quota gratuita. Nada de Apple Developer (99 USD/ano) nem Play Store.
+- **Controlo de acesso:** só entram contas criadas pelo administrador (Batista) na consola Firebase; registo público desligado. Conta desativada → a app bloqueia na próxima ligação ou ao fim do prazo de 7 dias. Os ficheiros da app são acessíveis pelo link (decisão do Batista: o controlo cobre o uso, não os ficheiros).
+- **Dispositivos:** iPhone (PWA pelo Safari), Android (APK por instalação direta) e PC da empresa bloqueado (Edge/Chrome, sem poder instalar Node/Python). Ferramentas de desenvolvimento só correm fora desse PC.
 
 ## Estado atual
 
-- `app/calculadora-flechas.html`: protótipo funcional e validado pelo utilizador. Dois métodos, seletor de apoio com pesquisa, perfil do vão em SVG, barra de tolerância, leitura esperada, botões "Próximo cabo" / "Nova medição". Atenção: carrega Google Fonts (tem fallback, mas viola a regra offline; embutir ou retirar).
-- `core/flechas-core.mjs`: o mesmo cálculo isolado da interface, com testes (`node --test` na raiz, 17 testes a passar).
-- `calculadora/flechas_nspire.txt`: versão em TI-Basic para a TI-Nspire CX CAS (geração anterior, sem Python), com a tabela de apoios embutida. Validada por tradução automática para Python; ainda não testada na calculadora.
+- **App (PWA + APK):** `index.html` + `src/`, construída com Vite. Calculadora do protótipo em `src/calc/app.js` (usa o núcleo, sem cópias do cálculo), login e prazo offline em `src/access/`, histórico local (IndexedDB, exportação JSON/CSV) em `src/history/`, APK com Capacitor em `android/`. Design: `docs/superpowers/specs/2026-11-13-app-flechas-pwa-apk-design.md`. Configuração e instalação: `docs/configuracao.md`.
+- `core/flechas-core.mjs`: o cálculo isolado da interface, com testes. `npm test` (unitários) e `npm run e2e` (Playwright, com login falso `VITE_AUTH=fake`).
+- `app/calculadora-flechas.html`: protótipo antigo de ficheiro único (Documents by Readdle). Já não é atualizado.
+- `calculadora/flechas_nspire.txt`: versão em TI-Basic para a TI-Nspire CX CAS, com a tabela de apoios embutida. Validada por tradução automática para Python; ainda não testada na calculadora.
 - `data/postes.json`: tabela de 485 tipos de apoio extraída da folha LBL.
 - `referencia/`: documento Word original (com erros, ver abaixo), folha Excel LBL do método português e foto de uma app existente.
 
@@ -58,8 +59,7 @@ Tolerâncias: cabo mais alto (flecha menor) até −2,5 %; cabo mais baixo (flec
 
 - A app existente da foto organiza o trabalho em passos (Terreno → Poste → Cabos → Resultados → Resumo) e regista os 8 cabos de um vão de uma vez (CC1–CC6, CG1, CG2). Avaliar o mesmo modelo: um boletim por vão em vez de um cabo de cada vez.
 - Essa app tem "Correção Temperatura" e "Flecha Teórica Supra/Infra" (interpolação entre temperaturas da tabela?). O significado ainda não foi confirmado; perguntar ao utilizador antes de implementar.
-- Guardar medições localmente (localStorage/IndexedDB como cache, exportação/importação JSON como arquivo durável) e exportar resultados (PDF/CSV gerados no browser).
-- Decidir a distribuição: HTML local no Documents by Readdle vs PWA com alojamento com controlo de acesso.
+- Relatório em PDF gerado no aparelho (o histórico já exporta JSON e CSV).
 
 ## Forma de trabalhar com o utilizador
 

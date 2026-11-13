@@ -6,7 +6,8 @@ import '@fontsource/barlow-semi-condensed/600.css';
 import '@fontsource/barlow-semi-condensed/700.css';
 import './styles.css';
 import { mountCalc } from './calc/app.js';
-import { initPwa } from './pwa.js';
+import { initPwa, banner } from './pwa.js';
+import { checkApkUpdate } from './update/check.js';
 import { startGate } from './access/gate.js';
 import { openHistory } from './history/store.js';
 import { mountHistory } from './history/ui.js';
@@ -19,6 +20,11 @@ async function loadAuth() {
 }
 
 initPwa();
+
+// APK Android: avisar quando houver versão nova no alojamento.
+checkApkUpdate().then(u => {
+  if (u) banner('apk-update', `Há uma versão nova da app (${u.version}).`, 'Descarregar', () => window.open(u.apk, '_blank'));
+});
 
 async function mountApp() {
   let hist = null;

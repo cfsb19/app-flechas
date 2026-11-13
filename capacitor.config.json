@@ -1,0 +1,6 @@
+{
+  "appId": "pt.flechas.app",
+  "appName": "Flechas",
+  "webDir": "dist",
+  "android": { "allowMixedContent": false }
+}
