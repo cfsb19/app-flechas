@@ -72,3 +72,16 @@ test('esqueci-me da palavra-passe', async ({ page }) => {
   await page.fill('#login-email', 'ana@x.pt'); await page.click('#login-reset');
   await expect(page.locator('#login-msg')).toHaveText('Se o email existir, vais receber um link para definir a palavra-passe.');
 });
+
+test('rede fraca: abre logo dentro do prazo, sem esperar pelo servidor', async ({ page }) => {
+  await seed(page, { ...U, session: 'ana@x.pt', currentUserDelayMs: 60000, verifyDelayMs: 60000 });
+  await seedLease(page, 'ana@x.pt', D);
+  await page.goto('/');
+  await expect(page.locator('#calc')).toBeVisible({ timeout: 4000 });
+});
+
+test('rede fraca sem prazo guardado: mostra "A verificar o acesso…"', async ({ page }) => {
+  await seed(page, { ...U, session: 'ana@x.pt', currentUserDelayMs: 60000 });
+  await page.goto('/');
+  await expect(page.locator('#checking')).toHaveText('A verificar o acesso…', { timeout: 4000 });
+});

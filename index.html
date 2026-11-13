@@ -13,6 +13,7 @@
 <meta name="apple-mobile-web-app-title" content="Flechas">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 </head><body>
+<section id="checking" class="gate" aria-live="polite"><p class="gate-sub" id="checking-text">A verificar o acesso…</p></section>
 <section id="login" class="gate" hidden aria-labelledby="login-title">
   <form class="gate-card" id="login-form" novalidate>
     <h1 id="login-title">Flechas</h1>
@@ -249,6 +250,7 @@
     <label class="gate-field"><span>Cabo</span><select id="save-cabo">
       <option>CC1</option><option>CC2</option><option>CC3</option><option>CC4</option><option>CC5</option><option>CC6</option>
       <option>CG1</option><option>CG2</option><option>Outro</option></select></label>
+    <p id="save-msg" class="gate-msg" role="alert"></p>
     <div class="sheet-actions">
       <button type="button" class="gate-link" id="save-cancel">Cancelar</button>
       <button type="submit" class="gate-btn" id="save-ok">Guardar</button>

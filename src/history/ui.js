@@ -22,7 +22,9 @@ export function mountHistory({ calc, history }) {
   }
 
   async function refresh() {
-    const list = history ? await history.list() : [];
+    let list = [];
+    try { list = history ? await history.list() : []; }
+    catch (e) { msg('Não foi possível ler o histórico. Fecha e volta a abrir a app.', true); }
     $('hist-empty').hidden = list.length > 0;
     const ul = $('hist-list'); ul.textContent = '';
     for (const r of list) {
@@ -39,7 +41,9 @@ export function mountHistory({ calc, history }) {
       const del = document.createElement('button'); del.type = 'button'; del.className = 'link'; del.textContent = 'Apagar';
       del.addEventListener('click', async () => {
         if (!confirm(`Apagar a medição ${r.vao || ''} ${r.cabo || ''}?`)) return;
-        await history.remove(r.id); msg(); refresh();
+        try { await history.remove(r.id); msg(); }
+        catch (err) { msg('Não foi possível apagar a medição. Tenta outra vez.', true); }
+        refresh();
       });
       btns.append(open, del);
       li.append(main, w, btns);
@@ -51,6 +55,7 @@ export function mountHistory({ calc, history }) {
   // Guardar
   $('save').addEventListener('click', () => {
     try { const last = JSON.parse(localStorage.getItem(LAST) || 'null'); if (last) { $('save-vao').value = last.vao || ''; $('save-cabo').value = last.cabo || 'CC1'; } } catch (e) { /* sem armazenamento */ }
+    $('save-msg').textContent = '';
     $('save-dialog').showModal();
     $('save-vao').focus();
   });
@@ -61,10 +66,15 @@ export function mountHistory({ calc, history }) {
     if (!history || !result) { $('save-dialog').close(); return; }
     const vao = $('save-vao').value.trim(), cabo = $('save-cabo').value;
     const st = calc.getState();
-    await history.add({
-      id: newId(), savedAt: new Date().toISOString(), vao, cabo, method: st.method, inputs: st,
-      result: { a: result.a, ft: result.ft, flecha: result.flecha, desvio: result.desvio, conforme: result.conforme, p: result.p },
-    });
+    try {
+      await history.add({
+        id: newId(), savedAt: new Date().toISOString(), vao, cabo, method: st.method, inputs: st,
+        result: { a: result.a, ft: result.ft, flecha: result.flecha, desvio: result.desvio, conforme: result.conforme, p: result.p },
+      });
+    } catch (err) {
+      $('save-msg').textContent = 'Não foi possível guardar a medição. Tenta outra vez.';
+      return;
+    }
     try { localStorage.setItem(LAST, JSON.stringify({ vao, cabo })); } catch (err) { /* sem armazenamento */ }
     $('save-dialog').close();
   });
@@ -73,14 +83,12 @@ export function mountHistory({ calc, history }) {
   $('hist-open').addEventListener('click', async () => { msg(); await refresh(); $('hist').showModal(); });
   $('hist-close').addEventListener('click', () => $('hist').close());
 
-  $('hist-export-json').addEventListener('click', async () => {
-    const list = await history.list();
-    await saveFile(`flechas-${today()}.json`, toJSON(list), 'application/json');
-  });
-  $('hist-export-csv').addEventListener('click', async () => {
-    const list = await history.list();
-    await saveFile(`flechas-${today()}.csv`, toCSV(list), 'text/csv;charset=utf-8');
-  });
+  const exportAs = (ext, make, mime) => async () => {
+    try { await saveFile(`flechas-${today()}.${ext}`, make(await history.list()), mime); }
+    catch (err) { msg('Não foi possível exportar. Tenta outra vez.', true); }
+  };
+  $('hist-export-json').addEventListener('click', exportAs('json', toJSON, 'application/json'));
+  $('hist-export-csv').addEventListener('click', exportAs('csv', toCSV, 'text/csv;charset=utf-8'));
   $('hist-import').addEventListener('change', async e => {
     const f = e.target.files && e.target.files[0];
     e.target.value = '';

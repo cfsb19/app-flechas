@@ -18,3 +18,16 @@ test('manifesto com nome, ícones e display standalone', async ({ request }) => 
   expect(m.lang).toBe('pt-PT');
   expect(m.icons.map(i => i.sizes)).toEqual(expect.arrayContaining(['192x192', '512x512']));
 });
+
+test('o service worker não troca /version.json nem /flechas.apk pela app', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  await page.reload(); // página passa a ser controlada pelo service worker
+  expect(await page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
+  const res = await page.goto('/version.json');
+  expect(res.headers()['content-type']).toContain('json');
+  expect(res.fromServiceWorker()).toBe(false);
+  await page.goto('/');
+  const apk = await page.goto('/flechas.apk');
+  expect(apk.fromServiceWorker()).toBe(false); // vem do servidor, não do service worker
+});

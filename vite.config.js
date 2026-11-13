@@ -33,6 +33,8 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         globIgnores: ['**/version.json', '**/flechas.apk'],
         navigateFallback: '/index.html',
+        // Estes têm de vir sempre do servidor (download do APK e aviso de versão).
+        navigateFallbackDenylist: [/^\/flechas\.apk$/, /^\/version\.json$/],
         cleanupOutdatedCaches: true,
       },
     }),

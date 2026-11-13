@@ -1,5 +1,5 @@
 // Porta de acesso: login, verificação online e prazo offline.
-import { accessStatus, loadLease, saveLease, clearLease } from './lease.js';
+import { accessStatus, loadLease, loadLeaseEmail, saveLease, clearLease } from './lease.js';
 
 export const MSG = {
   'invalid-credentials': 'Email ou palavra-passe errados.',
@@ -12,6 +12,8 @@ export const MSG = {
 };
 
 const VERIFY_TIMEOUT_MS = 10000;
+const USER_WAIT_MS = 3000; // com rede fraca o Firebase pode demorar até ~60 s a restaurar a sessão
+const PENDING = Symbol('pending');
 const RECHECK_MS = 6 * 60 * 60 * 1000;
 const dateFmt = new Intl.DateTimeFormat('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
@@ -23,6 +25,7 @@ export function startGate({ auth, storage = localStorage, now = Date.now, onUnlo
   let unlocked = false, busy = false;
 
   function show(which, msg = '', info = false) {
+    $('checking').hidden = true;
     $('login').hidden = which !== 'login';
     $('locked').hidden = which !== 'locked';
     $('calc').hidden = which !== 'app';
@@ -38,9 +41,24 @@ export function startGate({ auth, storage = localStorage, now = Date.now, onUnlo
     if (!unlocked) { unlocked = true; onUnlock(); }
   }
 
+  const leaseStatus = email => accessStatus({ signedIn: true, lastVerifiedAt: loadLease(storage, email), now: now() });
+
   async function evaluate({ verifyNow, lockedMsg = '' }) {
-    const user = await auth.currentUser();
+    // Não esperar pelo servidor para abrir: se o prazo guardado está válido, a calculadora abre já
+    // e a verificação continua em segundo plano.
+    const userP = auth.currentUser();
+    let user = await withTimeout(userP, USER_WAIT_MS, PENDING);
+    if (user === PENDING) {
+      const email = loadLeaseEmail(storage);
+      const st = email ? leaseStatus(email) : null;
+      if (st && st.state === 'ok') unlock({ email }, st.expiresAt);
+      user = await userP.catch(() => null);
+    }
     if (!user) { show('login'); return; }
+
+    let st = leaseStatus(user.email);
+    if (st.state === 'ok') unlock(user, st.expiresAt);
+
     if (verifyNow && navigator.onLine) {
       const r = await withTimeout(auth.verify(), VERIFY_TIMEOUT_MS, 'offline');
       if (r === 'ok') saveLease(storage, user.email, now());
@@ -49,7 +67,7 @@ export function startGate({ auth, storage = localStorage, now = Date.now, onUnlo
         show('login', MSG.disabled); return;
       }
     }
-    const st = accessStatus({ signedIn: true, lastVerifiedAt: loadLease(storage, user.email), now: now() });
+    st = leaseStatus(user.email);
     if (st.state === 'ok') unlock(user, st.expiresAt);
     else show('locked', lockedMsg);
   }

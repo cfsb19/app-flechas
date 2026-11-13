@@ -83,3 +83,22 @@ test('sem resultado, Guardar medição fica desativado', async ({ page }) => {
   await page.goto('/'); await page.click('#new');
   await expect(page.locator('#save')).toBeDisabled();
 });
+
+test('falha ao gravar no aparelho: avisa e não perde os dados do formulário', async ({ page }) => {
+  await page.goto('/');
+  await page.click('label[for=m-pt]'); await page.click('#new'); await page.click('#ex');
+  await expect(page.locator('#r-big')).toContainText('14,69');
+  await page.evaluate(() => { IDBObjectStore.prototype.put = function () { throw new DOMException('Connection lost', 'UnknownError'); }; });
+  await page.click('#save'); await page.fill('#save-vao', '9-10'); await page.click('#save-ok');
+  await expect(page.locator('#save-msg')).toHaveText('Não foi possível guardar a medição. Tenta outra vez.');
+  await expect(page.locator('#save-dialog')).toBeVisible();
+  await expect(page.locator('#a')).toHaveValue('417,36');
+});
+
+test('falha ao ler o histórico: abre o painel com aviso', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => { IDBObjectStore.prototype.getAll = function () { throw new DOMException('Connection lost', 'UnknownError'); }; });
+  await page.click('#hist-open');
+  await expect(page.locator('#hist')).toBeVisible();
+  await expect(page.locator('#hist-msg')).toHaveText('Não foi possível ler o histórico. Fecha e volta a abrir a app.');
+});

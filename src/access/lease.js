@@ -17,17 +17,30 @@ export function accessStatus({ signedIn, lastVerifiedAt, now }) {
   return { state: 'ok', expiresAt };
 }
 
-/** Última verificação guardada para este email, ou null. */
-export function loadLease(storage, email) {
+const norm = email => String(email || '').trim().toLowerCase();
+
+function read(storage) {
   try {
     const v = JSON.parse(storage.getItem(KEY) || 'null');
-    if (v && v.email === email && Number.isFinite(v.lastVerifiedAt)) return v.lastVerifiedAt;
+    if (v && typeof v.email === 'string' && Number.isFinite(v.lastVerifiedAt)) return v;
   } catch (e) { /* corrompido ou sem armazenamento */ }
   return null;
 }
 
+/** Última verificação guardada para este email (sem distinguir maiúsculas), ou null. */
+export function loadLease(storage, email) {
+  const v = read(storage);
+  return v && v.email === norm(email) ? v.lastVerifiedAt : null;
+}
+
+/** Email do último prazo guardado, ou null. Serve para abrir a app sem esperar pelo Firebase. */
+export function loadLeaseEmail(storage) {
+  const v = read(storage);
+  return v ? v.email : null;
+}
+
 export function saveLease(storage, email, at) {
-  try { storage.setItem(KEY, JSON.stringify({ email, lastVerifiedAt: at })); } catch (e) { /* sem armazenamento */ }
+  try { storage.setItem(KEY, JSON.stringify({ email: norm(email), lastVerifiedAt: at })); } catch (e) { /* sem armazenamento */ }
 }
 
 export function clearLease(storage) {
