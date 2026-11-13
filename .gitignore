@@ -6,3 +6,4 @@ dist/
 .env
 .firebase/
 android/app/build/
+.superpowers/
