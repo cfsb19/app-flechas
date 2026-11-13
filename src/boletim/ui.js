@@ -132,7 +132,7 @@ export function mountBoletim(root, { onChange } = {}) {
     const pos = path && ae.selectionStart != null ? ae.selectionStart : null;
     root.innerHTML = `<div class="wrap">${vaoHTML()}<section class="b-cabos" aria-label="Cabos">${wide() ? tabelaHTML() : separadoresHTML()}</section>
       <div class="b-resumo" id="b-resumo" aria-live="polite"></div>
-      <div class="actions" id="b-actions"></div></div>`;
+      <div class="actions" id="b-actions"><button type="button" class="link" id="b-save" disabled>Guardar boletim</button><button type="button" class="link" id="b-hist">Histórico</button></div></div>`;
     sig = signature();
     const sel = root.querySelector('[role=tab][aria-selected=true]');
     if (sel && sel.scrollIntoView) sel.scrollIntoView({ block: 'nearest', inline: 'nearest' });
