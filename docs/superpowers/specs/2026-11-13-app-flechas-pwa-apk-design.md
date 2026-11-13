@@ -1,6 +1,6 @@
 # App Flechas: PWA (iPhone/PC) e APK (Android) com controlo de utilizadores
 
-Data: 2026-11-13 · Estado: proposta para aprovação
+Data: 2026-11-13 · Estado: aprovado pelo Batista
 
 ## Intenção e porquê
 
@@ -87,6 +87,6 @@ Escolha do Batista: "avança com a PWA e APK".
 - Os ícones e o ecrã de arranque.
 - Os passos de configuração do Firebase. O projeto tem de ser criado pelo Batista na conta Google dele, por isso o builder escreve as instruções passo a passo.
 
-## Questões em aberto
+## Decisões tomadas na revisão
 
-- Os ficheiros da app (o código e a tabela de apoios) ficam acessíveis a quem tiver o link, mesmo sem conta. Só a utilização é que exige login. Ver a pergunta ao Batista.
+- O controlo de acesso cobre o **uso** da app, que exige login, e não os ficheiros. O código e a tabela de apoios ficam acessíveis a quem tiver o link, sem dados de medições. Hipótese rejeitada: Cloudflare Access a esconder também os ficheiros, por ser mais complexo, sobretudo no APK. Escolha do Batista: opção A.
