@@ -3,6 +3,7 @@
 import { G2R, solveTangent, solveParam, pFromSag, flechaInternacional, flechaPortugues } from '../../core/flechas-core.mjs';
 import { parseNum, fmt, fmtIn, sfmt, fmtT } from '../num.js';
 import { computeCabo } from './compute.js';
+import { gaugeHTML } from './gauge.js';
 import { CABOS, grupoDoCabo, bracoDoCabo, tempCalculo, linhasTabela, resolverTeorico,
   temperaturaDoDia, lembrarTemperatura, lerCorrecoes, guardarCorrecoes, hojeISO } from './temperatura.js';
 
@@ -94,25 +95,6 @@ export function mountCalc(root, { onRender } = {}) {
     const h = info.row[COL[$('ponto').value]];
     $('H').value = h == null ? '' : fmtIn(h);
     $('HS').value = info.row[5] == null ? '' : fmtIn(info.row[5]);
-  }
-
-  function gaugeHTML(R){
-    const devPct = R.verdict.dev * 100, A = R.tolA, B = R.tolB;
-    const lo = Math.min(-A - 1, devPct - 0.8), hi = Math.max(B + 1, devPct + 0.8);
-    const pos = x => (x - lo) / (hi - lo) * 100;
-    const pin = Math.min(94, Math.max(6, pos(devPct)));
-    return `<div class="gauge" role="img" aria-label="Desvio de ${sfmt(devPct,1)} %, tolerância de −${fmt(A,1)} % a +${fmt(B,1)} %">
-      <div class="track">
-        <div class="band" style="left:${pos(-A)}%;width:${pos(B) - pos(-A)}%"></div>
-        <div class="zero" style="left:${pos(0)}%"></div>
-        <div class="pin" style="left:${pin}%">${sfmt(devPct,1)} %</div>
-      </div>
-      <span class="tick" style="left:${pos(-A)}%">−${fmt(A,1)} %</span>
-      <span class="tick" style="left:${pos(0)}%">0</span>
-      <span class="tick" style="left:${pos(B)}%">+${fmt(B,1)} %</span>
-      <span class="side" style="left:0">cabo mais alto</span>
-      <span class="side" style="right:0">cabo mais baixo</span>
-    </div>`;
   }
 
   const NOTES = {

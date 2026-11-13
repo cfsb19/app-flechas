@@ -3,6 +3,7 @@ import { CABOS, grupoDoCabo, linhasTabela, lerCorrecoes, guardarCorrecoes, tempe
 import { novoBoletim, normalizarBoletim, caboVazio, calcularBoletim, resumo, temperaturaCalculo, entradaDoCabo, specVazio } from './state.js';
 import { POSTES_ROWS } from '../calc/tipos.js';
 import { fmt, sfmt, fmtT } from '../num.js';
+import { gaugeHTML } from '../calc/gauge.js';
 
 const KEY = 'flechas-boletim-v1';
 const GRUPOS = [['Braço superior', ['CC1', 'CC2']], ['Braço médio', ['CC3', 'CC4']], ['Braço inferior', ['CC5', 'CC6']], ['Cabo de guarda', ['CG1', 'CG2']]];
@@ -55,7 +56,7 @@ export function mountBoletim(root, { onChange } = {}) {
     const pt = B.method === 'pt';
     const geo = pt
       ? `${field('Comprimento do vão <i>a</i>', 'a', 'm')}${field('Desnível do perfil <i>opcional</i>', 'dp', 'm')}
-         <div class="field"><label for="b-tipo">Apoio de estação (tipo)</label><div class="box">${input('tipo', { num: false, list: 'b-tipos' }).replace('id="b-tipo"', 'id="b-tipo"')}</div></div>
+         <div class="field"><label for="b-tipo">Tipo de apoio</label><div class="box">${input('tipo', { num: false, list: 'b-tipos' })}</div></div>
          <div class="pair">${field('HS', 'HS', 'm')}${field('Perna', 'perna', 'm', { ph: '0' })}</div>
          <div class="pair">${field('Cota', 'cota', 'm')}${field('Dist. visada <i>F</i>', 'F', 'm')}</div>`
       : `${field('Comprimento do vão <i>a</i>', 'a', 'm')}${field('Distância de visada <i>t</i>', 't', 'm')}`;
@@ -88,8 +89,8 @@ export function mountBoletim(root, { onChange } = {}) {
     : [['z1', 'Desnível <i>Z₁</i>', 'grad'], ['z2', 'Desnível <i>Z₂</i>', 'grad']]).concat(reg() ? [] : [['z', 'Visada <i>Z</i>', 'grad']]);
   const resultados = () => (reg()
     ? [['leitura', 'Leitura a apontar'], ['intervalo', 'Leituras conformes'], ['flecha', 'Flecha']]
-    : [['flecha', 'Flecha medida'], ['desvio', 'Desvio'], ['resultado', 'Resultado']])
-    .concat([['sens', 'Erro de 0,01 grad'], ['avisos', 'Avisos']]);
+    : [['flecha', 'Flecha medida'], ['desvio', 'Desvio'], ['resultado', 'Resultado'], ['barra', 'Tolerância'], ['esperada', 'Leitura esperada']])
+    .concat([['desnivel', 'Desnível do vão'], ['sens', 'Erro de 0,01 grad'], ['avisos', 'Avisos']]);
 
   function teorCell(c) {
     const own = B.cabos[c][k()];
@@ -117,7 +118,7 @@ export function mountBoletim(root, { onChange } = {}) {
       <div class="b-panel" id="b-panel" role="tabpanel" aria-labelledby="b-tab-${c}">
         <div class="pair">${entradas().map(([f, l, u]) => field(l, `cabos.${c}.${f}`, u)).join('')}</div>
         <div class="field"><span class="lbl">${reg() ? 'Parâmetro' : 'Flecha teórica'}</span><div class="b-teorcell">${teorCell(c)}</div></div>
-        <dl class="b-res">${resultados().map(([r, l]) => `<div><dt>${l}</dt><dd data-res="${r}" data-cabo="${c}"></dd></div>`).join('')}</dl>
+        <dl class="b-res">${resultados().map(([r, l]) => `<div class="r-${r}"><dt>${l}</dt><dd data-res="${r}" data-cabo="${c}"></dd></div>`).join('')}</dl>
       </div>`;
   }
 
@@ -158,6 +159,7 @@ export function mountBoletim(root, { onChange } = {}) {
       if (!R) { for (const [r] of resultados()) set(r, ''); if (mark) mark.textContent = ''; continue; }
       const prob = R.missing ? 'Falta ' + listPt(R.missing) : R.errors.length ? R.errors[0] : '';
       set('sens', !prob && Number.isFinite(R.sens) ? `≈ ${fmt(R.sens * 100, 0)} cm` : '–');
+      set('desnivel', R.geoOK && !R.errors.length ? `${fmt(R.d, 2)} m` : '–');
       set('avisos', R.warns.length && !R.missing ? R.warns.map(esc).join('<br>') : '—', R.warns.length && !R.missing ? 'warn' : '');
       if (reg()) {
         set('leitura', R.reg ? `${fmt(R.reg.z, 4)} grad` : '–');
@@ -168,6 +170,8 @@ export function mountBoletim(root, { onChange } = {}) {
         const V = R.verdict;
         set('flecha', V ? `${fmt(V.f, 2)} m` : R.meas ? `${fmt(R.meas.f, 2)} m` : '–');
         set('desvio', V ? `${sfmt(V.dev * 100, 1)} %` : '–');
+        set('barra', V ? gaugeHTML(R, wide()) : '', 'r-barra');
+        set('esperada', R.theo && !R.errors.length ? `${fmt(R.theo.zT, 4)} grad` : '–');
         set('resultado', V ? (V.ok ? 'Conforme' : 'Não conforme') : `<span class="b-msg">${esc(prob || 'Falta a flecha teórica')}</span>`, V ? (V.ok ? 'ok' : 'bad') : '');
         if (mark) mark.textContent = V ? (V.ok ? ' ✓' : ' ✗') : '';
       }
