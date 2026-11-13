@@ -13,7 +13,34 @@
 <meta name="apple-mobile-web-app-title" content="Flechas">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 </head><body>
-<div id="calc">
+<section id="login" class="gate" hidden aria-labelledby="login-title">
+  <form class="gate-card" id="login-form" novalidate>
+    <h1 id="login-title">Flechas</h1>
+    <p class="gate-sub">Verificação de flechas por visada. Entra com a tua conta.</p>
+    <label class="gate-field"><span>Email</span>
+      <input id="login-email" type="email" autocomplete="username" inputmode="email" autocapitalize="off" spellcheck="false" required></label>
+    <label class="gate-field"><span>Palavra-passe</span>
+      <input id="login-pass" type="password" autocomplete="current-password" required></label>
+    <p id="login-msg" class="gate-msg" role="alert"></p>
+    <button type="submit" id="login-go" class="gate-btn">Entrar</button>
+    <button type="button" id="login-reset" class="gate-link">Esqueci-me da palavra-passe</button>
+  </form>
+</section>
+<section id="locked" class="gate" hidden>
+  <div class="gate-card">
+    <h1>Flechas</h1>
+    <p>Liga-te à internet para confirmar o teu acesso.</p>
+    <p class="gate-sub">A app funciona sem rede até 7 dias depois da última confirmação.</p>
+    <p id="locked-msg" class="gate-msg" role="alert"></p>
+    <button type="button" id="locked-retry" class="gate-btn">Tentar novamente</button>
+  </div>
+</section>
+<div id="account" class="account" hidden>
+  <span id="account-email"></span>
+  <span id="account-until" class="account-until"></span>
+  <button type="button" id="account-logout" class="gate-link">Sair</button>
+</div>
+<div id="calc" hidden>
 <div class="wrap">
   <header>
     <h1>Verificação de flechas por visada</h1>

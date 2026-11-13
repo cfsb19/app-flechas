@@ -1,4 +1,7 @@
 import { test, expect } from '@playwright/test';
+import { signedIn } from './helpers.mjs';
+
+test.beforeEach(({ page }) => signedIn(page));
 
 test('funciona offline depois da primeira visita', async ({ page, context }) => {
   await page.goto('/');

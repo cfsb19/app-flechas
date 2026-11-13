@@ -10,7 +10,7 @@ export default defineConfig({
     launchOptions: process.env.PW_CHROMIUM ? { executablePath: process.env.PW_CHROMIUM } : {},
   },
   webServer: {
-    command: 'npm run build && npm run preview',
+    command: 'npx vite build --mode e2e && npm run preview',
     url: 'http://localhost:4173',
     reuseExistingServer: false,
     timeout: 120000,

@@ -1,4 +1,7 @@
 import { test, expect } from '@playwright/test';
+import { signedIn } from './helpers.mjs';
+
+test.beforeEach(({ page }) => signedIn(page));
 
 test('exemplo internacional dá a flecha do protótipo', async ({ page }) => {
   await page.goto('/'); await page.click('#new'); await page.click('#ex');
