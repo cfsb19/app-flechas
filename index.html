@@ -204,6 +204,10 @@
         <button type="button" class="link" id="new">Nova medição</button>
         <button type="button" class="link" id="ex">Preencher exemplo</button>
       </div>
+      <div class="actions">
+        <button type="button" class="link" id="save" disabled>Guardar medição</button>
+        <button type="button" class="link" id="hist-open">Histórico</button>
+      </div>
     </section>
 
     <section id="out" aria-live="polite" aria-label="Resultados">
@@ -237,5 +241,31 @@
   <span style="text-align:right"><span class="dl" id="dock-l2">Flecha medida</span><span class="dv" id="dock-v2">–</span></span>
 </button>
 </div>
+
+<dialog id="save-dialog" class="sheet" aria-labelledby="save-title">
+  <form method="dialog" id="save-form">
+    <h2 id="save-title">Guardar medição</h2>
+    <label class="gate-field"><span>Vão</span><input id="save-vao" autocomplete="off" placeholder="por exemplo 9-10"></label>
+    <label class="gate-field"><span>Cabo</span><select id="save-cabo">
+      <option>CC1</option><option>CC2</option><option>CC3</option><option>CC4</option><option>CC5</option><option>CC6</option>
+      <option>CG1</option><option>CG2</option><option>Outro</option></select></label>
+    <div class="sheet-actions">
+      <button type="button" class="gate-link" id="save-cancel">Cancelar</button>
+      <button type="submit" class="gate-btn" id="save-ok">Guardar</button>
+    </div>
+  </form>
+</dialog>
+<dialog id="hist" class="sheet sheet-wide" aria-labelledby="hist-title">
+  <div class="sheet-head"><h2 id="hist-title">Histórico</h2><button type="button" class="gate-link" id="hist-close">Fechar</button></div>
+  <p id="hist-warn" class="gate-msg" hidden>Não é possível guardar medições neste browser (por exemplo, em navegação privada). A calculadora continua a funcionar.</p>
+  <p id="hist-msg" class="gate-msg info" role="status"></p>
+  <p id="hist-empty" class="hist-empty">Ainda não há medições guardadas.</p>
+  <ul id="hist-list" class="hist-list"></ul>
+  <div class="sheet-actions sheet-foot">
+    <button type="button" class="link" id="hist-export-json">Exportar JSON</button>
+    <button type="button" class="link" id="hist-export-csv">Exportar CSV</button>
+    <label class="link hist-import-btn">Importar<input type="file" id="hist-import" accept="application/json,.json"></label>
+  </div>
+</dialog>
 <script type="module" src="/src/main.js"></script>
 </body></html>

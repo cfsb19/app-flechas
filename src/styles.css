@@ -217,3 +217,25 @@ td.f{font-family:Georgia,'Times New Roman',serif;font-style:italic;color:var(--m
 .account{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center;justify-content:flex-end;max-width:1180px;margin:0 auto;
   padding:10px 16px 0;font-size:.9rem;color:var(--muted)}
 .account-until{flex:1 1 auto;text-align:right}
+
+/* Histórico */
+button.link:disabled{opacity:.5;cursor:not-allowed}
+.sheet{border:1px solid var(--rule);border-radius:10px;background:var(--panel);color:var(--ink);padding:20px;width:min(420px,calc(100vw - 32px))}
+.sheet-wide{width:min(640px,calc(100vw - 32px));max-height:85vh}
+.sheet::backdrop{background:rgba(10,18,30,.45)}
+.sheet h2{margin:0 0 12px;font-family:'Barlow Semi Condensed','Barlow',system-ui,sans-serif}
+.sheet form{display:grid;gap:12px}
+.sheet-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.sheet-actions{display:flex;gap:10px;justify-content:flex-end;align-items:center;flex-wrap:wrap}
+.sheet-foot{justify-content:flex-start;margin-top:14px;border-top:1px solid var(--rule);padding-top:14px}
+.gate-field select{font:inherit;font-weight:400;padding:10px 12px;border:1.5px solid var(--rule);border-radius:6px;background:var(--field);color:var(--ink)}
+.hist-empty{color:var(--muted)}
+.hist-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.hist-list li{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;justify-content:space-between;border:1px solid var(--rule);border-radius:8px;padding:10px 12px;background:var(--field)}
+.hist-main{font-variant-numeric:tabular-nums}
+.hist-main .ok{color:var(--ok);font-weight:600}
+.hist-main .nok{color:var(--err-ink);font-weight:600}
+.hist-when{color:var(--muted);font-size:.9rem}
+.hist-btns{display:flex;gap:8px}
+.hist-import-btn{position:relative;overflow:hidden;cursor:pointer}
+.hist-import-btn input{position:absolute;inset:0;opacity:0;cursor:pointer}

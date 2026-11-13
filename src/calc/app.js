@@ -10,7 +10,8 @@ export function resultSummary(R) {
   return { M: R.M, a: R.a, ft: R.theo.ft, flecha: R.verdict.f, desvio: R.verdict.dev, conforme: R.verdict.ok, p: R.meas.p };
 }
 
-export function mountCalc(root) {
+/** onRender: chamado depois de cada recálculo (ex.: para ativar "Guardar medição"). */
+export function mountCalc(root, { onRender } = {}) {
   const $ = id => document.getElementById(id);
   const IDS = ['a','dp','t','tipo','ponto','H','HS','perna','cad','z1','z2','cota','F','zf','z','temp','ft','tolA','tolB'];
   const KEY = 'flechas-verificacao-v3';
@@ -248,6 +249,7 @@ export function mountCalc(root) {
     $('steps').innerHTML = (R.geoOK && !R.errors.length) ? R.steps.map(r => `<tr><td>${r[0]}</td><td class="f">${r[1]}</td><td class="v">${r[2]}</td></tr>`).join('') : '';
     draw(R.drawObj || null);
     save(S);
+    if (onRender) onRender();
   }
   function nice(x){ const e = Math.pow(10, Math.floor(Math.log10(x))); const f = x / e; return (f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10) * e; }
   function draw(R){

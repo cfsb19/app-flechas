@@ -8,6 +8,8 @@ import './styles.css';
 import { mountCalc } from './calc/app.js';
 import { initPwa } from './pwa.js';
 import { startGate } from './access/gate.js';
+import { openHistory } from './history/store.js';
+import { mountHistory } from './history/ui.js';
 
 async function loadAuth() {
   const mod = import.meta.env.VITE_AUTH === 'fake'
@@ -18,9 +20,14 @@ async function loadAuth() {
 
 initPwa();
 
-let calc = null;
+async function mountApp() {
+  let hist = null;
+  const calc = mountCalc(document.getElementById('calc'), { onRender: () => hist && hist.onRender() });
+  hist = mountHistory({ calc, history: await openHistory() });
+}
+
 loadAuth().then(auth => {
-  startGate({ auth, onUnlock: () => { calc = mountCalc(document.getElementById('calc')); } });
+  startGate({ auth, onUnlock: () => { mountApp(); } });
 }).catch(err => {
   document.getElementById('login').hidden = false;
   document.getElementById('login-msg').textContent = err.message;
