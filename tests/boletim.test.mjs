@@ -84,3 +84,24 @@ test('regulação no boletim usa o parâmetro do grupo', () => {
   assert.equal(R.CG1.reg, undefined); // sem parâmetro CG
   assert.ok(R.CG1.missing.includes('o parâmetro'));
 });
+
+test('cadeia vazia vem do cabo anterior do mesmo grupo (não de outro grupo)', () => {
+  const B = novoBoletim(); B.method = 'pt';
+  B.cabos.CC1.cad = '4.24'; B.cabos.CC3.cad = '3.7'; B.cabos.CG1.cad = '0.34';
+  assert.equal(entradaDoCabo(B, 'CC2').cad, '4.24');
+  assert.equal(entradaDoCabo(B, 'CC4').cad, '3.7');
+  assert.equal(entradaDoCabo(B, 'CG2').cad, '0.34');
+  assert.equal(entradaDoCabo(B, 'CG1').cad, '0.34');
+  const B2 = novoBoletim(); B2.cabos.CC6.cad = '4'; // CG1 não herda dos CC
+  assert.equal(entradaDoCabo(B2, 'CG1').cad, '');
+});
+
+test('regulação no método português com desnível do perfil: cabo com H ou cadeia escritos conta', () => {
+  const B = vao910(); B.modo = 'reg'; B.dp = '20';
+  for (const c of ['CC1', 'CC3', 'CC5', 'CG1']) { B.cabos[c].zf = ''; B.cabos[c].z = ''; }
+  B.param.CC.direta = '1484';
+  assert.equal(caboVazio(B, 'CC1'), false);
+  assert.equal(caboVazio(B, 'CC2'), true);
+  const R = calcularBoletim(B);
+  assert.ok(R.CC1 && R.CC1.reg && Number.isFinite(R.CC1.reg.z));
+});

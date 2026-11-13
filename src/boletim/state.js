@@ -31,10 +31,27 @@ export function normalizarBoletim(B) {
   return out;
 }
 
-/** Sem nenhuma leitura (Z₁, Z₂, Z, Zf). A cadeia pré-preenchida não conta. */
+const temValor = v => String(v ?? '').trim() !== '';
+
+/** Sem nenhuma leitura (Z₁, Z₂, Z, Zf). A cadeia herdada não conta.
+ *  Exceção: na regulação do método português com desnível do perfil não há leituras a fazer;
+ *  aí conta o cabo com H ou cadeia escritos. */
 export function caboVazio(B, cabo) {
   const c = B.cabos[cabo] || {};
-  return !['z1', 'z2', 'z', 'zf'].some(k => String(c[k] ?? '').trim() !== '');
+  if (['z1', 'z2', 'z', 'zf'].some(k => temValor(c[k]))) return false;
+  if (B.modo === 'reg' && B.method === 'pt' && temValor(B.dp)) return !(temValor(c.H) || temValor(c.cad));
+  return true;
+}
+
+/** Cadeia efetiva: a do cabo, ou a do cabo anterior do mesmo grupo que a tenha escrita. */
+export function cadeiaDoCabo(B, cabo) {
+  const g = grupoDoCabo(cabo), i = CABOS.indexOf(cabo);
+  for (let j = i; j >= 0; j--) {
+    const c = CABOS[j];
+    if (grupoDoCabo(c) !== g) break;
+    if (temValor((B.cabos[c] || {}).cad)) return B.cabos[c].cad;
+  }
+  return '';
 }
 
 const str = x => (Number.isFinite(x) ? String(x) : '');
@@ -51,7 +68,7 @@ export function entradaDoCabo(B, cabo) {
   const H = String(c.H ?? '').trim() !== '' ? c.H : (hTab == null ? '' : String(hTab));
   const HS = String(B.HS ?? '').trim() !== '' ? B.HS : (row && row[5] != null ? String(row[5]) : '');
   return {
-    method: B.method, modo: B.modo, a: B.a, dp: B.dp, t: B.t, H, HS, perna: B.perna, cad: c.cad,
+    method: B.method, modo: B.modo, a: B.a, dp: B.dp, t: B.t, H, HS, perna: B.perna, cad: cadeiaDoCabo(B, cabo),
     z1: c.z1, z2: c.z2, cota: B.cota, F: B.F, zf: c.zf, z: c.z, temp: B.tLocal,
     ft: str(resolverTeorico(c.teor || B.teor[g], tc)),
     preg: str(resolverTeorico(c.param || B.param[g], tc)),

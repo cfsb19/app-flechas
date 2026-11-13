@@ -78,7 +78,10 @@ export function computeCabo(S){
       const zAt = f => { const pp = pFromSag(fn, a, d, f); if(!isFinite(pp)) return NaN; const s = solveTangent(a, d, pp, t, h); return s.above ? NaN : s.zen; };
       const zLo = zAt(fLo), zHi = zAt(fHi);
       R.theo = {ft, fLo, fHi, pT, sT, zT: sT.zen, zMin: Math.min(zLo, zHi), zMax: Math.max(zLo, zHi)};
-      if(sT.u < 0 || sT.u > a) R.warns.push(`Com a flecha teórica, a visada toca o cabo a ${fmt(sT.u,0)} m do apoio ${M === 'pt' ? 'de estação' : '1'}, fora do vão. Afasta ou aproxima o teodolito.`);
+      if(sT.u < 0 || sT.u > a){
+        if(modo === 'reg') R.errors.push(`Com este parâmetro, a visada toca o cabo a ${fmt(sT.u,0)} m do apoio ${M === 'pt' ? 'de estação' : '1'}, fora do vão. Afasta ou aproxima o teodolito.`);
+        else R.warns.push(`Com a flecha teórica, a visada toca o cabo a ${fmt(sT.u,0)} m do apoio ${M === 'pt' ? 'de estação' : '1'}, fora do vão. Afasta ou aproxima o teodolito.`);
+      }
       R.steps.push(['Parâmetro teórico, p₀', 'flecha(p₀) = flecha teórica', fmt(pT,1) + ' m'],
                    ['Leitura esperada, Z₀', 'visada tangente com p₀', fmt(sT.zen,4) + ' grad'],
                    ['Limites da flecha', `−${fmt(R.tolA,1)} % / +${fmt(R.tolB,1)} %`, `${fmt(fLo,3)} a ${fmt(fHi,3)} m`],
@@ -86,7 +89,7 @@ export function computeCabo(S){
     }
   }
 
-  if(modo === 'reg' && R.theo) R.reg = {p:R.theo.pT, f:R.theo.ft, z:R.theo.zT, zMin:R.theo.zMin, zMax:R.theo.zMax};
+  if(modo === 'reg' && R.theo && !R.errors.length) R.reg = {p:R.theo.pT, f:R.theo.ft, z:R.theo.zT, zMin:R.theo.zMin, zMax:R.theo.zMax};
 
   // Medição
   if(isFinite(v.z) && !R.errors.length){

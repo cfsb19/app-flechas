@@ -44,3 +44,10 @@ test('regulação sem parâmetro pede-o; parâmetro negativo é erro', () => {
   assert.ok(computeCabo({ ...sPT(c), modo: 'reg', preg: '' }).missing.includes('o parâmetro'));
   assert.ok(computeCabo({ ...sPT(c), modo: 'reg', preg: '-5' }).errors.includes('O parâmetro tem de ser maior que zero.'));
 });
+
+test('regulação com tangência fora do vão: sem leitura e com erro', () => {
+  const S = { ...S0, method: 'int', modo: 'reg', a: '425,48', t: '60', z1: '59,5046', z2: '81,6059', preg: '8000' };
+  const R = computeCabo(S);
+  assert.equal(R.reg, undefined);
+  assert.ok(R.errors.some(e => e.includes('fora do vão')), R.errors.join(' | '));
+});
