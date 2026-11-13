@@ -1,13 +1,11 @@
 // Interface da calculadora (extraída de app/calculadora-flechas.html).
 // O cálculo vem do núcleo validado; aqui só há leitura do formulário, validação e desenho.
 import { G2R, solveTangent, solveParam, pFromSag, flechaInternacional, flechaPortugues } from '../../core/flechas-core.mjs';
-import { parseNum, fmt, fmtIn, sfmt } from '../num.js';
+import { parseNum, fmt, fmtIn, sfmt, fmtT } from '../num.js';
 import { computeCabo } from './compute.js';
 import { CABOS, grupoDoCabo, bracoDoCabo, tempCalculo, linhasTabela, resolverTeorico,
   temperaturaDoDia, lembrarTemperatura, lerCorrecoes, guardarCorrecoes, hojeISO } from './temperatura.js';
 
-/** Temperatura sem casas decimais desnecessárias (17 → "17", 17,5 → "17,5"). */
-export const fmtT = T => (Number.isInteger(Math.round(T * 10) / 10) ? fmt(T, 0) : fmt(T, 1)).replace(/^-/, '−');
 const numStr = x => (Number.isFinite(x) ? String(x) : '');
 import { POSTES_ROWS } from './tipos.js';
 

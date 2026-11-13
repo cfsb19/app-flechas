@@ -23,3 +23,6 @@ export function parseNum(str) {
   if (!/^[-+]?(\d+\.?\d*|\.\d+)$/.test(s)) return NaN;
   return Number(s);
 }
+
+/** Temperatura sem casas decimais desnecessárias (17 → "17", 17,5 → "17,5", −5 → "−5"). */
+export const fmtT = T => (Number.isInteger(Math.round(T * 10) / 10) ? fmt(T, 0) : fmt(T, 1)).replace(/^-/, '−');

@@ -11,6 +11,7 @@ import { checkApkUpdate } from './update/check.js';
 import { startGate } from './access/gate.js';
 import { openHistory } from './history/store.js';
 import { mountHistory } from './history/ui.js';
+import { mountBoletim } from './boletim/ui.js';
 
 async function loadAuth() {
   const mod = import.meta.env.VITE_AUTH === 'fake'
@@ -26,10 +27,26 @@ checkApkUpdate().then(u => {
   if (u) banner('apk-update', `Há uma versão nova da app (${u.version}).`, 'Descarregar', () => window.open(u.apk, '_blank'));
 });
 
+const VISTA = 'flechas-vista';
+
+function setVista(v) {
+  const boletim = v === 'boletim';
+  document.getElementById('calc').hidden = boletim;
+  document.getElementById('boletim').hidden = !boletim;
+  document.getElementById('vista-cabo').setAttribute('aria-pressed', String(!boletim));
+  document.getElementById('vista-boletim').setAttribute('aria-pressed', String(boletim));
+  try { localStorage.setItem(VISTA, boletim ? 'boletim' : 'cabo'); } catch (e) { /* sem armazenamento */ }
+}
+
 async function mountApp() {
   let hist = null;
   const calc = mountCalc(document.getElementById('calc'), { onRender: () => hist && hist.onRender() });
-  hist = mountHistory({ calc, history: await openHistory() });
+  const boletim = mountBoletim(document.getElementById('boletim'), { onChange: () => hist && hist.onRender() });
+  document.getElementById('vista-cabo').addEventListener('click', () => setVista('cabo'));
+  document.getElementById('vista-boletim').addEventListener('click', () => setVista('boletim'));
+  let v = 'cabo'; try { v = localStorage.getItem(VISTA) || 'cabo'; } catch (e) { /* sem armazenamento */ }
+  setVista(v);
+  hist = mountHistory({ calc, boletim, history: await openHistory(), setVista });
 }
 
 loadAuth().then(auth => {
