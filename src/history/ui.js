@@ -73,7 +73,11 @@ export function mountHistory({ calc, boletim = null, history, setVista = () => {
       const open = document.createElement('button'); open.type = 'button'; open.className = 'link'; open.textContent = 'Abrir';
       open.addEventListener('click', () => {
         if (r.kind === 'boletim' && boletim) { setVista('boletim'); boletim.setState({ ...r.boletim, id: r.id }); }
-        else { setVista('cabo'); calc.setState({ ...r.inputs, method: r.method }); }
+        else {
+          setVista('cabo');
+          const corr = Number.isFinite(r.tLocal - r.tc) ? String(Math.round((r.tLocal - r.tc) * 1e6) / 1e6).replace('.', ',') : undefined;
+          calc.setState({ ...r.inputs, method: r.method, corr: r.inputs.corr ?? corr });
+        }
         $('hist').close();
       });
       const del = document.createElement('button'); del.type = 'button'; del.className = 'link'; del.textContent = 'Apagar';
@@ -118,12 +122,12 @@ export function mountHistory({ calc, boletim = null, history, setVista = () => {
     e.preventDefault();
     if (saving === 'boletim') {
       const B = boletim.getState(), vao = $('save-vao').value.trim();
-      const id = B.id || newId();
+      const id = B.id && (B.vao || '') === vao ? B.id : newId();
       const rec = { id, kind: 'boletim', savedAt: new Date().toISOString(), vao, method: B.method, modo: B.modo,
         boletim: { ...B, id, vao }, resultados: resultadosBoletim(B, boletim.resultados()) };
       try { await history.add(rec); }
       catch (err) { $('save-msg').textContent = 'Não foi possível guardar o boletim. Tenta outra vez.'; return; }
-      boletim.setState({ ...B, id, vao });
+      boletim.marcarGuardado(id, vao, B.vao);
       $('save-dialog').close();
       return;
     }

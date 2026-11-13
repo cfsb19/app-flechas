@@ -88,7 +88,8 @@ export function mountBoletim(root, { onChange } = {}) {
     : [['z1', 'Desnível <i>Z₁</i>', 'grad'], ['z2', 'Desnível <i>Z₂</i>', 'grad']]).concat(reg() ? [] : [['z', 'Visada <i>Z</i>', 'grad']]);
   const resultados = () => (reg()
     ? [['leitura', 'Leitura a apontar'], ['intervalo', 'Leituras conformes'], ['flecha', 'Flecha']]
-    : [['flecha', 'Flecha medida'], ['desvio', 'Desvio'], ['resultado', 'Resultado']]);
+    : [['flecha', 'Flecha medida'], ['desvio', 'Desvio'], ['resultado', 'Resultado']])
+    .concat([['sens', 'Erro de 0,01 grad'], ['avisos', 'Avisos']]);
 
   function teorCell(c) {
     const own = B.cabos[c][k()];
@@ -156,6 +157,8 @@ export function mountBoletim(root, { onChange } = {}) {
       const mark = root.querySelector(`[data-mark="${c}"]`);
       if (!R) { for (const [r] of resultados()) set(r, ''); if (mark) mark.textContent = ''; continue; }
       const prob = R.missing ? 'Falta ' + listPt(R.missing) : R.errors.length ? R.errors[0] : '';
+      set('sens', !prob && Number.isFinite(R.sens) ? `≈ ${fmt(R.sens * 100, 0)} cm` : '–');
+      set('avisos', R.warns.length && !R.missing ? R.warns.map(esc).join('<br>') : '—', R.warns.length && !R.missing ? 'warn' : '');
       if (reg()) {
         set('leitura', R.reg ? `${fmt(R.reg.z, 4)} grad` : '–');
         set('intervalo', R.reg ? `${fmt(R.reg.zMin, 4)}–${fmt(R.reg.zMax, 4)}` : `<span class="b-msg">${esc(prob || 'Sem visada tangente')}</span>`);
@@ -186,6 +189,7 @@ export function mountBoletim(root, { onChange } = {}) {
     const path = e.target.dataset && e.target.dataset.path;
     if (!path) return;
     setP(B, path, e.target.value);
+    if (path === 'vao') B.id = null; // outro vão = outro registo no histórico
     if (path.startsWith('corr.')) guardarCorrecoes(localStorage, B.corr);
     if (path === 'tLocal') lembrarTemperatura(localStorage, B.tLocal, hojeISO());
     persist(); update();
@@ -235,5 +239,12 @@ export function mountBoletim(root, { onChange } = {}) {
       persist(); build(); update();
     },
     resultados: () => res,
+    /** Depois de guardar: liga o boletim ao registo, só se o vão não mudou entretanto. */
+    marcarGuardado(id, vaoGuardado, vaoAntes) {
+      if ((B.vao || '') !== (vaoAntes || '')) return;
+      B.id = id; B.vao = vaoGuardado;
+      const el = root.querySelector('[data-path="vao"]'); if (el && el.value !== vaoGuardado) el.value = vaoGuardado;
+      persist(); update();
+    },
   };
 }

@@ -58,6 +58,7 @@ export function mountCalc(root, { onRender } = {}) {
     teor.pregTipo = s.pregTipo === 'tabela' ? 'tabela' : 'direta';
     teor.teorTab = Object.assign({}, s.teorTab || {}); teor.pregTab = Object.assign({}, s.pregTab || {});
     syncCorr();
+    if(s.corr != null && s.corr !== '') $('corr').value = s.corr; // medição reaberta: a correção que foi usada
   }
   const grupo = () => grupoDoCabo($('cabo').value);
   function syncCorr(){ $('corr').value = lerCorrecoes(localStorage)[grupo()]; }
@@ -355,13 +356,18 @@ export function mountCalc(root, { onRender } = {}) {
   $('new').addEventListener('click', () => {
     const keep = {tolA:$('tolA').value, tolB:$('tolB').value, method:method(), modo:modoAtual(), cabo:$('cabo').value,
       teorTipo:teor.teorTipo, pregTipo:teor.pregTipo, temp:temperaturaDoDia(localStorage, hojeISO())};
-    setState(Object.assign({}, DEFAULTS, keep)); tabTemps = ''; render(); $('a').focus();
+    setState(Object.assign({}, DEFAULTS, keep)); tabTemps = '';
+    if(method() === 'pt'){ $('ponto').value = bracoDoCabo($('cabo').value); applyTipo(); }
+    render(); $('a').focus();
   });
   // Cabo: escolhe a correção de temperatura do grupo e, no método português, o braço do apoio.
   $('cabo').addEventListener('change', () => {
     if(method() === 'pt'){ $('ponto').value = bracoDoCabo($('cabo').value); applyTipo(); }
     syncCorr(); render();
   });
+  document.querySelectorAll('input[name=method]').forEach(el => el.addEventListener('change', () => {
+    if(method() === 'pt' && $('ponto').value !== bracoDoCabo($('cabo').value)){ $('ponto').value = bracoDoCabo($('cabo').value); applyTipo(); render(); }
+  }));
   $('corr').addEventListener('input', () => { guardarCorrecoes(localStorage, Object.assign(lerCorrecoes(localStorage), {[grupo()]: $('corr').value})); render(); });
   $('temp').addEventListener('input', () => lembrarTemperatura(localStorage, $('temp').value, hojeISO()));
   document.querySelectorAll('input[name=teorTipo]').forEach(el => el.addEventListener('change', () => { teor[tipoKey()] = el.value; tabTemps = ''; render(); }));

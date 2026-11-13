@@ -294,3 +294,4 @@ td.ok,dd.ok{color:var(--ok)} td.bad,dd.bad{color:var(--err-ink)}
 .b-resumo{margin-top:16px;padding:14px 16px;border-radius:8px;background:var(--panel);border:1px solid var(--rule);font-weight:600}
 .b-resumo.ok{background:var(--ok-bg);border-color:transparent}
 .b-resumo.bad{background:var(--err-bg);color:var(--err-ink);border-color:transparent}
+td.warn,dd.warn{color:var(--warn-ink);font-weight:500;font-size:.8rem;text-align:left;min-width:120px}
