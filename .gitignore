@@ -7,3 +7,4 @@ dist/
 .firebase/
 android/app/build/
 .superpowers/
+dist-local/

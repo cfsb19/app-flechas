@@ -107,3 +107,35 @@ Os limites gratuitos do Firebase Hosting (10 GB guardados e 360 MB transferidos 
 **PC (Edge ou Chrome):** abre o endereço. Se a política da empresa o permitir, o ícone **Instalar** na barra de endereço instala a app.
 
 **Cópia de segurança das medições:** em **Histórico → Exportar JSON**, guarda o ficheiro onde quiseres. Para recuperar as medições num telemóvel novo, usa **Importar**.
+
+## 5. Usar a app
+
+**Vistas:** no topo, escolhe **Cabo a cabo** (um cabo de cada vez) ou **Boletim do vão** (os 8 cabos de uma vez). No tablet na horizontal, o boletim aparece como uma tabela. No telemóvel, tem um separador por cabo.
+
+**Modos:**
+- **Verificação:** escreves as leituras do teodolito e a flecha teórica. A app dá a flecha medida e diz se está **Conforme** ou **Não conforme**.
+- **Regulação:** escreves o parâmetro da tabela de regulação. A app dá a **leitura a apontar** no teodolito, as leituras que ainda contam como conformes e a flecha correspondente.
+
+**Temperatura:**
+- Escreve a **temperatura local**. Durante o dia, a app propõe a última que escreveste.
+- A **correção de temperatura** (fluência) é diferente para os condutores (CC) e para os cabos de guarda (CG), e fica guardada.
+- A temperatura de cálculo é a local menos a correção.
+- Com **Pela tabela**, a app pede a flecha (ou o parâmetro) das linhas de 5 em 5 °C de que precisa:
+  - uma só linha se a temperatura de cálculo for múltiplo de 5;
+  - as linhas de baixo e de cima nos outros casos, e a app interpola.
+
+**Boletim:**
+- Os dados comuns (vão, geometria, temperatura, flecha ou parâmetro de cada grupo) escrevem-se uma vez.
+- Em cada cabo escrevem-se só as leituras.
+- Os cabos sem leituras são ignorados.
+- Se um cabo tiver uma flecha ou um parâmetro diferente do resto do grupo, carrega em **Valor próprio** nesse cabo.
+- **Guardar boletim** guarda o vão inteiro no histórico. Se o boletim foi aberto a partir do histórico, o registo existente é atualizado.
+
+## 6. Cópia num único ficheiro HTML (sem login)
+
+É uma cópia completa da app num só ficheiro, `flechas.html`, para abrir sem internet e sem instalar nada. Serve, por exemplo, no Documents by Readdle ou no PC da empresa.
+
+- **Não tem login.** Quem tiver o ficheiro pode usar a app. **É só para ti: não a envies a ninguém.** Para os colegas usa sempre a PWA ou o APK.
+- **Onde a obter:** no GitHub, abre **Actions → Testes**, escolhe o run mais recente do ramo `main` e descarrega o artefacto **flechas-html** no fundo da página. Fica disponível durante 30 dias depois de cada alteração.
+- **Medições:** ficam guardadas no browser onde abres o ficheiro. Abrir o mesmo ficheiro noutro browser ou noutro aparelho começa vazio. Em alguns visualizadores, como o Readdle, o histórico pode não ficar guardado. Exporta em JSON com frequência.
+- A cópia não se atualiza sozinha. Quando houver uma versão nova, descarrega o artefacto outra vez.
