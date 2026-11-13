@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Verificação de flechas por visada</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EDF0F2; --panel:#F9FAFB; --ink:#14213D; --muted:#56637A; --rule:#C7CFD7;
+  --field:#FFFFFF; --grid:#E1E6EA; --wire:#14213D; --sight:#C8102E; --mark:#F2B705;
+  --tower:#8A96A3; --ok:#17703F; --ok-bg:#DDF0E4; --warn-bg:#FFF3D1; --warn-ink:#5E4100; --err-bg:#FBE2E5; --err-ink:#86101F;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0E1622; --panel:#142032; --ink:#E3E9F0; --muted:#9AA7B6; --rule:#2B3B50;
+    --field:#0F1A29; --grid:#1B293A; --wire:#E3E9F0; --sight:#FF5E72; --mark:#F5C542;
+    --tower:#5E6E81; --ok:#4CC47F; --ok-bg:#123223; --warn-bg:#3A2F10; --warn-ink:#F6D98C; --err-bg:#3D1620; --err-ink:#FFB4BF;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0E1622; --panel:#142032; --ink:#E3E9F0; --muted:#9AA7B6; --rule:#2B3B50;
+  --field:#0F1A29; --grid:#1B293A; --wire:#E3E9F0; --sight:#FF5E72; --mark:#F5C542;
+  --tower:#5E6E81; --ok:#4CC47F; --ok-bg:#123223; --warn-bg:#3A2F10; --warn-ink:#F6D98C; --err-bg:#3D1620; --err-ink:#FFB4BF;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font-family:'Barlow',system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  font-size:17px;line-height:1.45;-webkit-text-size-adjust:100%}
+.cond{font-family:'Barlow Semi Condensed','Barlow',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+.num{font-variant-numeric:tabular-nums lining-nums}
+.wrap{max-width:1180px;margin:0 auto;padding:22px 16px 110px}
+header{margin-bottom:18px}
+h1{font-family:'Barlow Semi Condensed','Barlow',system-ui,sans-serif;font-weight:700;
+  font-size:clamp(1.7rem,4.6vw,2.5rem);line-height:1.05;margin:0 0 6px;letter-spacing:-.01em}
+header p{margin:0;color:var(--muted);max-width:62ch}
+
+.seg{display:flex;border:1.5px solid var(--ink);border-radius:6px;overflow:hidden;margin:0 0 10px}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label{flex:1;text-align:center;padding:9px 8px;cursor:pointer;font-weight:600;
+  font-family:'Barlow Semi Condensed','Barlow',system-ui,sans-serif;font-size:1rem;line-height:1.2}
+.seg label:not(:first-of-type){border-left:1.5px solid var(--ink)}
+.seg input:checked+label{background:var(--ink);color:var(--paper)}
+.seg input:focus-visible+label{outline:3px solid var(--mark);outline-offset:-4px}
+.seg-caption{font-size:.9rem;color:var(--muted);margin:2px 0 6px}
+
+.layout{display:grid;gap:26px}
+@media (min-width:900px){
+  .layout{grid-template-columns:minmax(300px,370px) 1fr;align-items:start}
+  .inputs{position:sticky;top:calc(14px + env(safe-area-inset-top,0px))}
+}
+
+fieldset{border:0;border-top:1px solid var(--rule);margin:14px 0 0;padding:12px 0 0}
+legend{font-family:'Barlow Semi Condensed','Barlow',system-ui,sans-serif;font-weight:700;
+  font-size:1.12rem;padding:0 8px 0 0}
+.field{margin:10px 0 0}
+.field[hidden]{display:none}
+.field label{display:flex;justify-content:space-between;gap:10px;font-weight:600;font-size:.98rem}
+.field label i{font-style:italic;font-weight:500;color:var(--muted);font-family:Georgia,'Times New Roman',serif}
+.hint{display:block;font-size:.86rem;color:var(--muted);margin-top:2px}
+.box{position:relative;margin-top:5px}
+.box input{width:100%;font:inherit;font-size:1.12rem;font-variant-numeric:tabular-nums;
+  padding:10px 60px 10px 12px;border:1.5px solid var(--rule);border-radius:4px;
+  background:var(--field);color:var(--ink)}
+.box input:focus{outline:2px solid var(--ink);outline-offset:1px;border-color:var(--ink)}
+.box input[aria-invalid="true"]{border-color:var(--sight)}
+.box .unit{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--muted);
+  font-size:.95rem;pointer-events:none}
+.actions{margin-top:16px;display:flex;gap:10px;flex-wrap:wrap}
+button.link{font:inherit;font-weight:600;color:var(--ink);background:none;border:1.5px solid var(--rule);
+  border-radius:4px;padding:8px 12px;cursor:pointer}
+button.link:hover{border-color:var(--ink)}
+button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
+.reading{border-left:6px solid var(--sight);background:var(--panel);padding:14px 16px 16px;
+  border-radius:0 6px 6px 0}
+.reading .lbl{font-weight:600;font-size:1rem;display:flex;align-items:center;gap:8px}
+.swatch{display:inline-block;width:22px;height:0;border-top:2.5px solid var(--sight)}
+.big{font-family:'Barlow Semi Condensed','Barlow',system-ui,sans-serif;font-weight:700;
+  font-size:clamp(2.7rem,9vw,4.2rem);line-height:1;margin:6px 0 4px;letter-spacing:-.01em;
+  font-variant-numeric:tabular-nums lining-nums}
+.big small{font-size:.42em;font-weight:600;color:var(--muted);margin-left:6px;letter-spacing:0}
+.sub{color:var(--muted);margin:0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin:14px 0 0;
+  border-top:1px solid var(--rule)}
+.stats div{padding:10px 12px 8px 0}
+.stats dt{font-size:.9rem;color:var(--muted)}
+.stats dd{margin:2px 0 0;font-family:'Barlow Semi Condensed','Barlow',system-ui,sans-serif;
+  font-weight:600;font-size:clamp(1.2rem,4.2vw,1.45rem);font-variant-numeric:tabular-nums lining-nums}
+.stats dd span{font-size:.95rem;color:var(--muted);font-weight:500;font-family:'Barlow',system-ui,sans-serif;display:block}
+
+.msg{border-radius:4px;padding:10px 12px;margin:12px 0 0;font-size:.97rem}
+.msg.warn{background:var(--warn-bg);color:var(--warn-ink)}
+.msg.err{background:var(--err-bg);color:var(--err-ink)}
+
+figure{margin:18px 0 0}
+.profile{background:var(--panel);border:1px solid var(--rule);border-radius:6px;overflow:hidden}
+.profile svg{display:block;width:100%}
+figcaption{font-size:.88rem;color:var(--muted);margin-top:6px}
+svg .grid{stroke:var(--grid);stroke-width:1}
+svg .wire{stroke:var(--wire);stroke-width:2.4;fill:none}
+svg .chord{stroke:var(--muted);stroke-width:1.2;stroke-dasharray:5 5;fill:none}
+svg .sight{stroke:var(--sight);stroke-width:2;fill:none}
+svg .tower{stroke:var(--tower);stroke-width:1.6;fill:none}
+svg .dim{stroke:var(--ink);stroke-width:1.2;fill:none}
+svg .tan{fill:var(--mark);stroke:var(--ink);stroke-width:1.5}
+svg .inst{stroke:var(--ink);stroke-width:1.6;fill:none}
+svg .inst-head{fill:var(--sight);stroke:var(--ink);stroke-width:1.2}
+svg text{paint-order:stroke;stroke:var(--panel);stroke-width:4px;stroke-linejoin:round;fill:var(--ink);font-family:'Barlow','Barlow Semi Condensed',system-ui,sans-serif;font-size:13px}
+svg text.m{fill:var(--muted);font-size:12px}
+svg text.b{font-weight:600}
+
+details{margin-top:22px;border-top:1px solid var(--rule);padding-top:10px}
+summary{cursor:pointer;font-weight:700;font-family:'Barlow Semi Condensed','Barlow',system-ui,sans-serif;font-size:1.12rem}
+.tablewrap{overflow-x:auto;margin-top:8px}
+table{border-collapse:collapse;width:100%;min-width:520px;font-size:.95rem}
+th,td{text-align:left;padding:7px 10px 7px 0;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font-weight:600;color:var(--muted)}
+td.v{text-align:right;font-variant-numeric:tabular-nums lining-nums;white-space:nowrap;font-weight:600}
+td.f{font-family:Georgia,'Times New Roman',serif;font-style:italic;color:var(--muted);white-space:nowrap}
+.notes{margin-top:22px;border-top:1px solid var(--rule);padding-top:10px;color:var(--muted);font-size:.95rem;max-width:70ch}
+.notes h2{font-family:'Barlow Semi Condensed','Barlow',system-ui,sans-serif;font-size:1.12rem;color:var(--ink);margin:0 0 6px}
+.notes p{margin:0 0 8px}
+
+.dock{position:fixed;left:0;right:0;bottom:0;background:var(--ink);color:var(--paper);
+  padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));display:flex;
+  justify-content:space-between;align-items:baseline;gap:12px;border:0;width:100%;font:inherit;
+  text-align:left;cursor:pointer;transition:transform .2s ease;z-index:5}
+.dock .dv{font-family:'Barlow Semi Condensed','Barlow',system-ui,sans-serif;font-weight:700;font-size:1.35rem;font-variant-numeric:tabular-nums}
+.dock .dl{font-size:.85rem;opacity:.8;display:block}
+.dock.hide{transform:translateY(110%)}
+@media (min-width:900px){.dock{display:none}}
+@media (prefers-reduced-motion: reduce){.dock{transition:none}}
+
+.reading.st-ok{border-left-color:var(--ok)}
+.reading.st-bad{border-left-color:var(--sight)}
+.reading.st-wait{border-left-color:var(--rule)}
+.verdict{display:inline-flex;align-items:center;gap:8px;font-family:'Barlow Semi Condensed','Barlow',system-ui,sans-serif;
+  font-weight:700;font-size:1.35rem;padding:4px 12px 4px 10px;border-radius:4px;margin-bottom:8px}
+.verdict::before{content:'';width:12px;height:12px;border-radius:50%;background:currentColor}
+.verdict.ok{background:var(--ok-bg);color:var(--ok)}
+.verdict.bad{background:var(--err-bg);color:var(--err-ink)}
+.gauge{margin:14px 0 4px;position:relative;padding:24px 0 44px}
+.gauge .track{position:relative;height:14px;background:var(--grid);border-radius:3px}
+.gauge .band{position:absolute;top:0;bottom:0;background:var(--ok);opacity:.35;border-radius:2px}
+.gauge .zero{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--ink);transform:translateX(-1px)}
+.gauge .pin{position:absolute;top:-20px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;
+  font-weight:700;font-size:.9rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+.gauge .pin::after{content:'';width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:9px solid var(--ink);margin-top:1px}
+.gauge .tick{position:absolute;top:42px;transform:translateX(-50%);font-size:.82rem;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.gauge .side{position:absolute;bottom:0;font-size:.82rem;color:var(--muted)}
+.tol summary{font-size:1rem}
+.tol .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:360px){.pair{grid-template-columns:1fr}}
+@media (min-width:900px){.stats{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}}
+.box select{width:100%;font:inherit;font-size:1.05rem;padding:10px 12px;border:1.5px solid var(--rule);border-radius:4px;background:var(--field);color:var(--ink);appearance:auto}
+.box select:focus{outline:2px solid var(--ink);outline-offset:1px;border-color:var(--ink)}
+.box input.noun{padding-right:12px}
+.hint.info{color:var(--ink)}
+.method{margin-bottom:6px}
+
+.combo{position:relative;margin-top:5px}
+.combo-btn{width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;font:inherit;font-size:1.12rem;
+  padding:10px 12px;border:1.5px solid var(--rule);border-radius:4px;background:var(--field);color:var(--ink);cursor:pointer;text-align:left}
+.combo-btn[aria-expanded="true"]{border-color:var(--ink)}
+.combo-btn .ph{color:var(--muted)}
+.combo-btn:focus-visible{outline:2px solid var(--ink);outline-offset:1px;border-color:var(--ink)}
+.combo-panel{position:fixed;top:0;left:0;right:0;bottom:0;z-index:20;background:var(--paper);display:flex;flex-direction:column;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.combo-panel[hidden]{display:none}
+.combo-head{display:flex;justify-content:space-between;align-items:center;padding:10px 12px 2px 16px}
+.combo-head strong{font-family:'Barlow Semi Condensed','Barlow',system-ui,sans-serif;font-size:1.3rem}
+.combo-close{font:inherit;font-weight:600;background:none;border:0;color:var(--ink);padding:10px;cursor:pointer}
+.combo-search{padding:6px 16px 2px}
+.combo-search input{width:100%;font:inherit;font-size:1.12rem;padding:10px 12px;border:1.5px solid var(--ink);border-radius:4px;
+  background:var(--field);color:var(--ink);-webkit-appearance:none;appearance:none}
+.combo-search input:focus{outline:2px solid var(--ink);outline-offset:1px}
+.combo-count{margin:6px 16px 6px;font-size:.88rem;color:var(--muted)}
+#tipo-list{position:relative;list-style:none;margin:0;padding:0 8px 12px;overflow-y:auto;flex:1;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+#tipo-list li{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:12px 10px;border-bottom:1px solid var(--rule);cursor:pointer}
+#tipo-list li .n{font-family:'Barlow Semi Condensed','Barlow',system-ui,sans-serif;font-weight:600;font-size:1.15rem}
+#tipo-list li .d{font-size:.88rem;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+#tipo-list li.active{background:var(--grid)}
+#tipo-list li[aria-selected="true"] .n::after{content:'  ✓';color:var(--ok)}
+@media (min-width:900px){
+  .combo-panel{position:absolute;top:calc(100% + 4px);bottom:auto;max-height:400px;border:1.5px solid var(--ink);border-radius:6px;
+    background:var(--panel);padding:0;box-shadow:0 10px 28px rgba(20,33,61,.22)}
+  .combo-head{display:none}
+  .combo-search{padding:10px 10px 2px}
+  .combo-count{margin:6px 12px}
+  #tipo-list li{padding:9px 10px}
+}
+</style>
+</head><body>
+<div class="wrap">
+  <header>
+    <h1>Verificação de flechas por visada</h1>
+    <p>Introduz as leituras do teodolito e a flecha teórica. O cálculo segue a catenária exata e diz se o cabo está conforme.</p>
+  </header>
+
+  <div class="layout">
+    <section class="inputs" aria-label="Dados de entrada">
+      <div class="seg method" role="radiogroup" aria-label="Método de cálculo">
+        <input type="radio" name="method" id="m-int" value="int" checked><label for="m-int">Método internacional</label>
+        <input type="radio" name="method" id="m-pt" value="pt"><label for="m-pt">Método português</label>
+      </div>
+      <p class="seg-caption" id="method-caption"></p>
+
+      <fieldset>
+        <legend>Vão</legend>
+        <div class="field">
+          <label for="a">Comprimento do vão <i>a</i></label>
+          <div class="box"><input id="a" inputmode="decimal" autocomplete="off"><span class="unit">m</span></div>
+          <span class="hint">Distância horizontal entre os dois apoios.</span>
+        </div>
+        <div class="field" data-m="pt">
+          <label for="dp">Desnível do perfil <i>opcional</i></label>
+          <div class="box"><input id="dp" inputmode="decimal" autocomplete="off" placeholder="deixa vazio para medir"><span class="unit">m</span></div>
+          <span class="hint">Se preencheres, substitui o desnível calculado pelo ângulo de fixação.</span>
+        </div>
+      </fieldset>
+
+      <fieldset data-m="int">
+        <legend>Teodolito</legend>
+        <div class="field">
+          <label for="t">Distância de visada <i>t</i></label>
+          <div class="box"><input id="t" inputmode="decimal" autocomplete="off"><span class="unit">m</span></div>
+          <span class="hint">Horizontal, do teodolito ao apoio 1, medida para fora do vão.</span>
+        </div>
+      </fieldset>
+
+      <fieldset data-m="pt">
+        <legend>Apoio de estação</legend>
+        <div class="field">
+          <label for="tipo-btn">Tipo de apoio</label>
+          <input type="hidden" id="tipo">
+          <div class="combo">
+            <button type="button" id="tipo-btn" class="combo-btn" aria-haspopup="dialog" aria-expanded="false" aria-controls="tipo-panel">
+              <span id="tipo-val" class="ph">Escolher apoio</span>
+              <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 5l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+            </button>
+            <div class="combo-panel" id="tipo-panel" role="dialog" aria-label="Escolher tipo de apoio" hidden>
+              <div class="combo-head"><strong>Tipo de apoio</strong><button type="button" class="combo-close" id="tipo-close">Fechar</button></div>
+              <div class="combo-search"><input type="search" id="tipo-q" role="combobox" aria-expanded="true" aria-controls="tipo-list" aria-autocomplete="list" placeholder="Pesquisar, ex.: YLS2" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="done"></div>
+              <p class="combo-count" id="tipo-count" aria-live="polite"></p>
+              <ul id="tipo-list" role="listbox" aria-label="Tipos de apoio"></ul>
+            </div>
+          </div>
+          <span class="hint" id="tipo-hint">Da tabela de apoios da folha LBL. Preenche H e HS.</span>
+        </div>
+        <div class="field">
+          <label for="ponto">Ponto de fixação</label>
+          <div class="box"><select id="ponto">
+            <option value="sup">Braço superior (Br.Sup)</option>
+            <option value="med">Braço médio (Br.Med)</option>
+            <option value="hu">Braço inferior (Hu)</option>
+            <option value="ht">Topo, cabo de guarda (Ht)</option>
+          </select></div>
+        </div>
+        <div class="pair">
+          <div class="field">
+            <label for="H">Altura <i>H</i></label>
+            <div class="box"><input id="H" inputmode="decimal" autocomplete="off"><span class="unit">m</span></div>
+          </div>
+          <div class="field">
+            <label for="HS">HS</label>
+            <div class="box"><input id="HS" inputmode="decimal" autocomplete="off"><span class="unit">m</span></div>
+          </div>
+        </div>
+        <div class="pair">
+          <div class="field">
+            <label for="perna">Perna</label>
+            <div class="box"><input id="perna" inputmode="decimal" autocomplete="off" placeholder="0"><span class="unit">m</span></div>
+          </div>
+          <div class="field">
+            <label for="cad">Cadeia</label>
+            <div class="box"><input id="cad" inputmode="decimal" autocomplete="off"><span class="unit">m</span></div>
+          </div>
+        </div>
+        <span class="hint">H e HS vêm da tabela, mas podes corrigi-los. A cadeia é o comprimento da cadeia de isoladores, ou da fixação no cabo de guarda.</span>
+      </fieldset>
+
+      <fieldset>
+        <legend>Leituras</legend>
+        <div data-m="int">
+          <div class="pair">
+            <div class="field">
+              <label for="z1">Desnível 1 <i>Z₁</i></label>
+              <div class="box"><input id="z1" inputmode="decimal" autocomplete="off"><span class="unit">grad</span></div>
+            </div>
+            <div class="field">
+              <label for="z2">Desnível 2 <i>Z₂</i></label>
+              <div class="box"><input id="z2" inputmode="decimal" autocomplete="off"><span class="unit">grad</span></div>
+            </div>
+          </div>
+          <span class="hint">Ao ponto de fixação do condutor no apoio 1 e no apoio 2.</span>
+        </div>
+        <div data-m="pt">
+          <div class="pair">
+            <div class="field">
+              <label for="cota">Cota</label>
+              <div class="box"><input id="cota" inputmode="decimal" autocomplete="off"><span class="unit">m</span></div>
+            </div>
+            <div class="field">
+              <label for="F">Dist. visada</label>
+              <div class="box"><input id="F" inputmode="decimal" autocomplete="off"><span class="unit">m</span></div>
+            </div>
+          </div>
+          <span class="hint">Cota e distância de visada como na folha LBL. A distância ao apoio de estação é negativa com o teodolito atrás dele, fora do vão.</span>
+          <div class="field">
+            <label for="zf">Ângulo de fixação no apoio oposto <i>Z<sub>f</sub></i></label>
+            <div class="box"><input id="zf" inputmode="decimal" autocomplete="off"><span class="unit">grad</span></div>
+          </div>
+        </div>
+        <div class="field">
+          <label for="z">Visada ao seio do cabo <i>Z</i></label>
+          <div class="box"><input id="z" inputmode="decimal" autocomplete="off"><span class="unit">grad</span></div>
+          <span class="hint">Leitura com a visada tangente ao cabo. 100 grad é a horizontal.</span>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Referência</legend>
+        <div class="pair">
+          <div class="field">
+            <label for="temp">Temperatura</label>
+            <div class="box"><input id="temp" inputmode="decimal" autocomplete="off"><span class="unit">°C</span></div>
+          </div>
+          <div class="field">
+            <label for="ft">Flecha teórica</label>
+            <div class="box"><input id="ft" inputmode="decimal" autocomplete="off"><span class="unit">m</span></div>
+          </div>
+        </div>
+        <span class="hint">A flecha teórica é a da tabela de regulação para a temperatura registada.</span>
+      </fieldset>
+
+      <details class="tol" id="tol">
+        <summary id="tol-sum">Tolerâncias</summary>
+        <div class="pair">
+          <div class="field">
+            <label for="tolA">Cabo mais alto</label>
+            <div class="box"><input id="tolA" inputmode="decimal" autocomplete="off"><span class="unit">%</span></div>
+            <span class="hint">Flecha menor que a teórica.</span>
+          </div>
+          <div class="field">
+            <label for="tolB">Cabo mais baixo</label>
+            <div class="box"><input id="tolB" inputmode="decimal" autocomplete="off"><span class="unit">%</span></div>
+            <span class="hint">Flecha maior que a teórica.</span>
+          </div>
+        </div>
+      </details>
+
+      <div class="actions">
+        <button type="button" class="link" id="next">Próximo cabo</button>
+        <button type="button" class="link" id="new">Nova medição</button>
+        <button type="button" class="link" id="ex">Preencher exemplo</button>
+      </div>
+    </section>
+
+    <section id="out" aria-live="polite" aria-label="Resultados">
+      <div class="reading st-wait" id="reading">
+        <div id="r-verdict"></div>
+        <div class="lbl" id="r-lbl"></div>
+        <div class="big" id="r-big">–</div>
+        <p class="sub" id="r-sub"></p>
+        <div id="gauge"></div>
+      </div>
+      <div id="msgs"></div>
+      <dl class="stats" id="stats"></dl>
+
+      <figure>
+        <div class="profile" id="profile"></div>
+        <figcaption id="cap">Perfil do vão, linha vermelha é a visada tangente ao cabo.</figcaption>
+      </figure>
+
+      <details id="det">
+        <summary>Passos do cálculo</summary>
+        <div class="tablewrap"><table><thead><tr><th>Grandeza</th><th>Fórmula</th><th style="text-align:right">Valor</th></tr></thead><tbody id="steps"></tbody></table></div>
+      </details>
+
+      <div class="notes" id="notes"></div>
+    </section>
+  </div>
+</div>
+
+<button type="button" class="dock" id="dock" aria-label="Ir para os resultados">
+  <span><span class="dl" id="dock-l1"></span><span class="dv" id="dock-v1">–</span></span>
+  <span style="text-align:right"><span class="dl" id="dock-l2">Flecha medida</span><span class="dv" id="dock-v2">–</span></span>
+</button>
+<script>
+const POSTES_RAW = [["AWA1",35.0,31.0,25.0,19.0,0.87],["AWA2",41.0,37.0,31.0,25.0,0.87],["AWA3",47.0,43.0,37.0,31.0,0.87],["AWA4",53.0,48.0,43.0,37.0,0.87],["AWR1",35.0,31.0,25.0,19.0,0.86],["AWR2",41.0,37.0,31.0,25.0,0.86],["AWR3",47.0,43.0,37.0,31.0,0.86],["AWR4",53.0,49.0,43.0,37.0,0.86],["AWS1",35.0,31.0,25.0,19.0,0.775],["AWS1e",41.0,37.0,31.0,25.0,0.775],["AWS2",41.0,37.0,31.0,25.0,0.775],["AWS2e",47.0,43.0,37.0,31.0,0.775],["AWS3",47.0,43.0,37.0,31.0,0.775],["AWT0",28.0,24.0,18.0,12.0,0.97],["AWT1",35.0,31.0,25.0,19.0,0.97],["AWT14.4",31.416,26.416,20.416,14.416,0.97],["AWT15",31.0,27.0,21.0,15.0,0.97],["AWT2",41.0,37.0,31.0,25.0,0.97],["AWT3",47.0,43.0,37.0,31.0,0.97],["BR1",18.57,null,null,15.5,0.773],["BR2",21.57,null,null,18.5,0.83],["BR3",24.87,null,null,21.8,0.823],["BR4",28.17,null,null,25.1,0.823],["BR5",31.42,null,null,28.35,0.85],["BR6",34.67,null,null,31.6,0.85],["BWGA1",38.6,34.6,28.6,22.6,0.922],["BWGA2",44.6,40.6,34.6,28.6,0.922],["BWGA3",50.6,46.6,40.6,34.6,0.922],["BWGR1",38.6,34.6,28.6,22.6,0.888],["BWGR2",44.6,40.6,34.6,28.6,0.888],["BWGR3",50.6,46.6,40.6,34.6,0.888],["BWGS1",38.6,34.6,28.6,22.6,0.884],["BWGS2",44.6,40.6,34.6,28.6,0.884],["BWGS3",50.6,46.6,40.6,34.6,0.884],["BWGT1",38.6,34.6,28.6,22.6,0.882],["BWGT2",44.6,40.6,34.6,28.6,0.882],["BWGT3",50.6,46.6,40.6,34.6,0.882],["CR1",18.57,null,null,15.5,0.773],["CR2",21.57,null,null,18.5,0.83],["CR3",24.87,null,null,21.8,0.823],["CR4",28.17,null,null,22.1,0.823],["CR5",31.42,null,null,28.35,0.85],["CR6",34.67,null,null,31.6,0.85],["CWA1",39.452,35.404,29.004,22.604,0.883],["CWA2",45.452,41.404,35.004,28.604,0.883],["CWA3",51.452,47.404,41.004,34.604,0.883],["CWA3e",57.452,53.404,47.004,40.604,0.883],["CWA4",57.452,53.404,47.004,40.604,0.883],["CWE+6",57.452,53.404,47.004,40.604,0.882],["CWE+6N",57.452,53.404,47.004,40.604,0.882],["CWLS1",38.647,35.4,29.0,22.547,0.722],["CWLS2",44.647,41.4,35.0,28.547,0.722],["CWLS3",50.647,47.4,41.0,34.547,0.722],["CWLS4",56.647,53.4,47.0,40.547,0.722],["CWR1",39.452,35.404,29.004,22.604,0.883],["CWR2",45.452,41.404,35.004,28.604,0.883],["CWR3",51.452,47.404,41.004,34.604,0.883],["CWR3+7.5",58.952,54.904,48.504,42.104,0.883],["CWR4",57.452,53.404,47.004,40.604,0.952],["CWR4e",63.452,59.404,53.004,46.604,0.952],["CWS1",38.647,35.292,28.892,22.547,0.822],["CWS2",44.647,41.292,34.892,28.547,0.822],["CWS3",50.647,47.292,40.892,34.547,0.822],["CWS4",56.647,53.292,46.892,40.547,0.822],["CWT1",39.452,35.399,28.999,22.599,0.882],["CWT2",45.452,41.399,34.999,28.599,0.882],["CWT3",51.452,47.399,40.999,34.599,0.882],["CWT3e",57.452,53.399,46.999,40.599,0.882],["DIA1",45.55,20.55,20.55,20.55,0.947],["DIA2",50.55,25.55,25.55,25.55,0.947],["DIE1",44.5,20.0,20.0,20.0,0.952],["DIE2",49.5,25.0,25.0,25.0,0.952],["DIE3",54.5,30.0,30.0,30.0,0.952],["DIR1",42.5,20.0,20.0,20.0,0.778],["DIR2",49.5,25.0,25.0,25.0,0.778],["DIR3",54.5,30.0,30.0,30.0,0.803],["DIR4",59.5,35.0,35.0,35.0,0.803],["DIR5",64.5,40.0,40.0,40.0,0.803],["DIR6",69.5,45.0,45.0,45.0,0.803],["DIS1",44.5,20.0,20.0,20.0,0.674],["DIS2",49.5,25.0,25.0,25.0,0.674],["DIS3",54.5,30.0,30.0,30.0,0.674],["DIS4",59.5,35.0,35.0,35.0,0.709],["DIS5",64.5,40.0,40.0,40.0,0.709],["DIS6",69.5,45.0,45.0,45.0,0.709],["DLA1",47.17,41.07,32.82,24.57,0.887],["DLA10",75.17,69.07,60.82,52.57,0.887],["DLA2",50.17,44.07,35.82,27.57,0.887],["DLA3",53.17,47.07,38.82,30.57,0.887],["DLA4",56.17,50.07,41.82,33.57,0.887],["DLA5",60.17,54.07,45.82,37.57,0.887],["DLA6",63.17,57.07,48.82,40.57,0.887],["DLGS0",38.825,null,null,19.025,0.831],["DLGS1",44.225,40.925,32.675,24.425,0.831],["DLGS2",47.225,43.925,35.675,27.425,0.831],["DLGS3",50.225,46.925,38.675,30.425,0.831],["DLGS4",53.225,49.925,41.675,33.425,0.831],["DLGS5",57.225,53.925,45.675,37.425,0.831],["DLGS6",60.225,56.925,48.675,40.425,0.831],["DLGS7",62.225,58.925,50.675,42.425,0.831],["DLGS8",65.225,61.925,53.675,45.425,0.831],["DLR1",47.17,41.07,32.82,24.57,0.833],["DLR10",75.17,69.07,60.82,52.57,0.833],["DLR2",50.17,44.07,35.82,27.57,0.833],["DLR3",53.17,47.07,38.82,30.57,0.833],["DLR4",56.17,50.07,41.82,33.57,0.833],["DLR5",60.17,54.07,45.82,37.57,0.833],["DLR6",63.17,57.07,48.82,40.57,0.833],["DLR8",69.17,63.07,54.82,46.57,0.833],["DLS0",38.825,null,null,19.025,0.831],["DLS1",44.225,40.925,32.675,24.425,0.831],["DLS2",47.225,43.925,35.675,27.425,0.831],["DLS3",50.225,46.925,38.675,30.425,0.831],["DLS4",53.225,49.925,41.675,33.425,0.831],["DLS5",57.225,53.925,45.675,37.425,0.831],["DLS6",60.225,56.925,48.675,40.425,0.831],["DLS7",62.225,58.925,50.675,42.425,0.831],["DLS8",65.225,61.925,53.675,45.425,0.831],["DLT1",47.17,41.07,32.82,24.57,1.018],["DLT10",75.17,69.07,60.82,52.57,1.018],["DLT2",50.17,44.07,35.82,27.57,1.018],["DLT3",53.17,47.07,38.82,30.57,1.018],["DLT4",56.17,50.07,41.82,33.57,1.018],["DLT5",60.17,54.07,45.82,37.57,1.018],["DLT6",63.17,57.07,48.82,40.57,1.018],["DLT7",66.17,60.07,51.82,43.57,1.018],["DLT8",69.17,63.07,54.82,46.57,1.018],["DR1",19.84,null,null,12.5,0.85],["DR3",25.84,null,null,18.5,0.85],["DR4",28.84,null,null,21.5,1.295],["DR5",31.84,null,null,24.5,1.295],["DR8",40.84,null,null,33.5,1.295],["DS3",25.786,null,null,18.486,0.745],["DS4",28.786,null,null,21.486,0.745],["DS5",31.786,null,null,24.486,0.745],["DS6",34.786,null,null,27.486,0.745],["DS9",43.786,null,null,36.486,0.745],["DTP1+10",58.525,null,null,41.925,0.709],["DTP1+5",53.525,null,null,36.925,0.709],["DTP1-0",48.525,null,null,31.925,0.709],["DTP1-5",43.525,null,null,26.925,0.709],["DTP2+10",58.525,null,null,41.925,0.709],["DTP2+5",53.525,null,null,36.925,0.709],["DTP2-0",48.525,null,null,31.925,0.709],["DTP2-5",43.525,null,null,26.925,0.709],["DTP3+10",59.025,null,null,39.425,0.74],["DTP3+5",54.025,null,null,34.425,0.74],["DTP3-0",49.025,null,null,29.425,0.74],["DTP3-5",44.025,null,null,24.425,0.74],["DTP4+5",54.025,null,null,34.425,0.76],["DTP4-0",49.025,null,null,29.425,0.76],["DTP4-5",44.025,null,null,24.425,0.76],["DTP5+5",54.025,null,null,34.425,0.711],["DTP5-0",49.025,null,null,29.425,0.711],["DTP5-5",44.025,null,null,24.425,0.711],["EEA",29.0,null,null,19.0,0.0],["EES",29.0,null,null,19.0,0.0],["FA2",32.681,27.78,22.38,0.0,null],["FA3",37.681,32.78,27.38,0.0,null],["FA4",42.681,37.78,32.38,null,null],["FA5",47.681,42.78,37.38,null,null],["FDA1",27.825,null,null,17.39,0.66],["FDA2",32.825,null,null,22.39,0.66],["FDA3",37.825,null,null,27.39,0.66],["FDA4",42.825,null,null,32.39,0.66],["FDR1",27.825,null,null,17.39,0.71],["FDR2",32.825,null,null,22.39,0.71],["FDR3",37.825,null,null,27.39,0.71],["FDR4",42.825,null,null,32.39,0.71],["FDS1",27.326,null,null,19.391,0.674],["FDS2",32.329,null,null,24.394,0.674],["FDS3",37.329,null,null,29.394,0.674],["FDS4",42.08,null,null,34.145,0.674],["FDT1",27.825,null,null,17.39,0.67],["FDT2",32.825,null,null,22.39,0.67],["FDT3",37.825,null,null,27.39,0.67],["FDT4",42.825,null,null,32.39,0.67],["FR1",27.681,22.78,17.38,null,null],["FR2",32.681,27.78,22.38,null,null],["FR3",37.681,32.78,27.38,null,null],["FR4",42.681,37.78,32.38,null,null],["FR5",47.68,42.78,37.38,0.0,0.71],["FR6",52.681,47.78,42.38,null,null],["FS1",27.401,25.031,null,null,null],["FS2",32.401,30.03,24.631,null,null],["FS3",37.401,35.031,29.631,null,null],["FS4",42.401,40.031,34.631,null,null],["FS5",47.401,45.031,39.631,null,null],["FS6",52.401,50.031,44.631,null,null],["FT1",27.825,22.79,17.39,null,null],["GR4",28.84,null,null,21.5,1.295],["GR5",31.84,null,null,24.5,1.295],["GR6",34.84,null,null,27.5,1.295],["GS1",19.8,null,null,12.5,0.715],["GS2",22.8,null,null,15.5,0.745],["GS3",25.786,null,null,18.486,0.745],["GS4",28.786,null,null,21.486,0.745],["GS5",31.786,null,null,24.486,0.745],["GS6",34.786,null,null,27.486,0.745],["GS7",37.786,null,null,30.486,0.745],["GS8",40.786,null,null,33.486,0.745],["GS9",43.786,null,null,36.486,0.745],["HA1",38.2,18.95,18.95,18.95,0.882],["HA2",44.2,24.95,24.95,24.95,0.882],["HA3",50.2,31.0,31.0,31.0,0.939],["HR0",21.66,6.96,6.96,6.96,0.883],["HR1",38.2,19.0,19.0,19.0,0.881],["HR2",44.2,25.0,25.0,25.0,0.881],["HR3",50.2,31.0,31.0,31.0,0.938],["HR4",56.2,37.0,37.0,37.0,0.938],["HS1",38.2,19.0,19.0,19.0,0.888],["HS2",44.2,25.0,25.0,25.0,0.888],["HS3",50.2,31.0,31.0,31.0,0.888],["MA1",26.0,null,null,17.0,0.0],["MA2",32.0,null,null,23.0,0.0],["MAWT2",41.0,25.0,25.0,25.0,0.97],["MDIR1",40.5,20.0,20.0,20.0,0.778],["MDIR2",47.5,25.0,25.0,25.0,null],["MGR4",28.84,21.5,21.5,21.5,1.295],["MGS3",25.786,18.486,18.486,18.486,0.745],["MRP0",19.25,16.25,16.25,16.25,0.835],["MRP1",22.25,19.25,19.25,19.25,0.835],["MRP2",25.25,22.25,22.25,22.25,0.835],["MS1",26.0,17.0,17.0,17.0,0.0],["MS2",32.0,23.0,23.0,23.0,0.0],["MS3",38.0,29.0,29.0,29.0,0.0],["MT1-19",22.995,19.115,19.115,19.115,0.81],["MT1-19e",28.995,25.115,25.115,25.115,0.81],["MT1-25",28.957,25.077,25.077,25.077,0.81],["MT1-25e",34.957,31.077,31.077,31.077,0.81],["MT1-31",34.919,31.039,31.039,31.039,0.81],["MT1-31e",40.919,37.039,37.039,37.039,0.81],["MT1-37",40.881,37.001,37.001,37.001,0.81],["MT1-43",46.843,42.963,42.963,42.963,0.81],["MT1G-25",28.933,25.077,25.077,25.077,0.81],["MT1G-31",34.895,31.039,31.039,31.039,0.81],["MT1G-37",40.857,37.001,37.001,37.001,0.81],["MT1G-43",46.819,42.963,42.963,42.963,0.81],["MTA-13",17.215,13.115,13.115,13.115,0.81],["MTA-19",22.995,19.115,19.115,19.115,0.81],["MTA-25",28.957,25.077,25.077,25.077,0.81],["MTA-31",34.919,31.039,31.039,31.039,0.81],["MTAG-19",22.969,19.115,19.115,19.115,0.81],["MTAG-25",28.931,25.077,25.077,25.077,0.81],["MTAG-31",34.893,31.039,31.039,31.039,0.81],["MTR1-19",22.995,19.115,19.115,19.115,0.81],["MTR1-25",28.957,25.077,25.077,25.077,0.81],["MTR1-31",34.919,31.039,31.039,31.039,0.81],["MTR1-37",40.881,37.001,37.001,37.001,0.81],["MTR1-43",46.843,43.039,43.039,43.039,0.81],["MTR1G-25",28.931,25.077,25.077,25.077,0.81],["MTR1G-31",34.893,31.039,31.039,31.039,0.81],["MTR1G-37",40.855,37.01,37.001,37.001,0.81],["MTR2-19",22.995,19.115,19.115,19.115,0.81],["MTR2-25",28.957,25.077,25.077,25.077,0.81],["MTR2-31",34.919,31.039,31.039,31.039,0.81],["MTR2-37",40.881,37.001,37.001,37.001,0.81],["MTR2-43",46.919,43.039,43.039,43.039,0.81],["MTR2G-25",28.931,25.077,25.077,25.077,0.81],["MTR2G-31",34.893,31.039,31.039,31.039,0.81],["MTR2G-37",40.855,37.001,37.001,37.001,0.81],["MUA1",22.7,19.0,19.0,19.0,0.73],["MUA2",28.7,25.0,25.0,25.0,0.81],["MUA3",34.7,31.0,31.0,31.0,0.81],["MUR1",22.7,19.0,19.0,19.0,0.7],["MUR2",28.7,25.0,25.0,25.0,0.7],["MUR3",34.7,31.0,31.0,31.0,0.7],["MUR4",40.7,37.0,37.0,37.0,0.7],["MUR5",46.7,43.0,43.0,43.0,0.7],["MUR6",52.7,49.0,49.0,49.0,0.7],["MUT1",22.7,19.0,19.0,19.0,0.73],["MUT2",28.7,25.0,25.0,25.0,0.81],["MUT3",34.7,31.0,31.0,31.0,0.81],["MUT4",40.7,37.0,37.0,37.0,0.81],["MUT5",46.7,43.0,43.0,43.0,0.81],["MWA1",33.0,19.0,19.0,19.0,0.87],["MWA3",48.6,31.0,31.0,31.0,0.87],["MWR1",33.0,19.0,19.0,19.0,0.86],["MWT1",33.0,19.0,19.0,19.0,0.97],["MWT2",42.6,25.0,25.0,25.0,0.97],["OMT1-13",14.465,13.115,13.115,13.115,0.81],["OMT1-25",26.202,25.077,25.077,25.077,0.81],["OMT1-31",32.164,31.039,31.039,31.039,0.81],["OMT1-37",38.126,37.001,37.001,37.001,0.81],["OMTA-13",14.465,13.115,13.115,13.115,0.81],["OMTR1-37",38.126,37.001,37.001,37.001,0.81],["OT1-17",18.185,17.115,17.115,17.115,0.81],["OT1-23",24.147,23.077,23.077,23.077,0.81],["OT1-23e",30.147,29.077,29.077,29.077,0.81],["OT1-29",30.147,29.039,29.039,29.039,0.81],["OTA-17",18.24,17.115,17.115,17.115,0.81],["OTR2-17",18.24,17.115,17.115,17.115,0.81],["OTR2-23",24.202,23.077,23.077,23.077,0.81],["OTR2-29",30.164,29.039,29.039,29.039,0.81],["OZ2",26.356,25.256,25.256,25.256,0.74],["OZ2e",32.356,31.256,31.256,31.256,0.74],["PAL4e",33.98,22.77,22.77,22.77,0.8],["PL",23.3,17.0,17.0,17.0,1.045],["PN",24.0,16.192,16.192,16.192,0.8],["PNe",24.0,16.192,16.192,16.192,0.8],["PNm",25.995,18.187,18.187,18.187,0.8],["PNx",25.995,18.187,18.187,18.187,0.8],["PNz",25.995,18.187,18.187,18.187,0.8],["PZ",27.621,17.954,17.954,17.954,1.045],["QA1",25.6,20.6,20.6,20.6,0.686],["QA2",30.6,25.6,25.6,25.6,0.686],["QA3",35.6,30.6,30.6,30.6,0.686],["QA4",40.6,35.6,35.6,35.6,0.686],["QA5",45.6,40.6,40.6,40.6,0.686],["QRA1",25.6,20.6,20.6,20.6,0.704],["QRA2",30.6,25.6,25.6,25.6,0.704],["QRA3",35.6,30.6,30.6,30.6,0.704],["QRA4",40.6,35.6,35.6,35.6,0.704],["QRA5",45.6,40.6,40.6,40.6,0.704],["QRS1",25.6,20.6,20.6,20.6,0.704],["QRS10",70.6,65.6,65.6,65.6,0.704],["QRS2",30.6,25.6,25.6,25.6,0.704],["QRS3",35.6,30.6,30.6,30.6,0.704],["QRS4",40.6,35.6,35.6,35.6,0.704],["QRS5",45.6,40.6,40.6,40.6,0.704],["QRS6",50.6,45.6,45.6,45.6,0.704],["QRS7",55.6,50.6,50.6,50.6,0.704],["QRS8",60.6,55.6,55.6,55.6,0.704],["QRS9",65.6,60.6,60.6,60.6,0.704],["QS1",24.55,20.6,20.6,20.6,0.64],["QS2",29.55,25.6,25.6,25.6,0.64],["QS3",34.55,30.6,30.6,30.6,0.64],["QS4",39.55,35.6,35.6,35.6,0.64],["QS5",44.55,40.6,40.6,40.6,0.64],["QT1",25.6,20.6,20.6,20.6,0.75],["QT2",30.6,25.6,25.6,25.6,0.75],["QT3",35.6,30.6,30.6,30.6,0.75],["QT4",40.6,35.6,35.6,35.6,0.75],["QT5",45.6,40.6,40.6,40.6,0.75],["R15",26.0,null,null,19.0,0.765],["S0",26.4,null,null,19.0,0.673],["STP1+10",58.525,null,null,41.925,0.709],["STP1+5",53.525,null,null,36.925,0.709],["STP1-0",48.525,null,null,31.925,0.709],["STP1-5",43.525,null,null,26.925,0.709],["STP2+10",58.525,null,null,41.925,0.709],["STP2+5",53.525,null,null,36.925,0.709],["STP2-0",48.525,null,null,31.925,0.709],["STP2-5",43.525,null,null,26.925,0.709],["STP3+10",59.025,null,null,39.425,0.74],["STP3+5",54.025,null,null,34.425,0.74],["STP3-0",49.025,null,null,29.425,0.74],["STP3-5",44.025,null,null,24.425,0.74],["STP4+5",54.025,null,null,34.425,0.76],["STP4-0",49.025,null,null,29.425,0.76],["STP4-5",44.025,null,null,24.425,0.76],["STP5+5",54.025,null,null,34.425,0.711],["STP5-0",49.025,null,null,29.425,0.711],["STP5-5",44.025,null,null,24.425,0.711],["T1-17",20.995,17.115,17.115,17.115,0.81],["T1-17e",26.995,23.115,23.115,23.115,0.81],["T1-23",26.957,23.077,23.077,23.077,0.81],["T1-23e",32.957,29.77,29.077,29.077,0.81],["T1-29",32.919,29.039,29.039,29.039,0.81],["T1-29e",38.919,35.039,35.039,35.039,0.81],["T1-35",38.881,35.001,35.001,35.001,0.81],["T1-41",44.843,40.963,40.963,40.963,0.81],["T2-17",20.995,17.115,17.115,17.115,0.81],["T2-23",26.957,23.077,23.077,23.077,0.81],["T2-29",32.919,29.039,29.039,29.039,0.81],["TA-11",14.995,11.115,11.115,11.115,0.81],["TA-17",20.995,17.115,17.115,17.115,0.81],["TA-23",26.957,23.077,23.077,23.077,0.81],["TA-29",32.919,29.039,29.039,29.039,0.81],["TBA2",44.5,29.0,29.0,29.0,0.81],["TBA3",50.5,35.0,35.0,35.0,0.0],["TBA4",56.5,41.0,41.0,41.0,0.0],["TE",87.0,80.0,80.0,80.0,1.0],["TR1-17",20.995,17.115,17.115,17.115,0.81],["TR1-23",26.957,23.077,23.077,23.077,0.81],["TR1-29",32.919,29.039,29.039,29.039,0.81],["TR1-35",38.881,35.001,35.001,35.001,0.81],["TR1-41",44.919,41.039,41.039,41.039,0.81],["TR1T-17",20.995,17.115,17.115,17.115,0.81],["TR1T-23",26.957,23.077,23.077,23.077,0.81],["TR1T-29",32.919,29.039,29.039,29.039,0.81],["TR2-17",20.995,17.115,17.115,17.115,0.81],["TR2-23",26.957,23.077,23.077,23.077,0.81],["TR2-29",32.919,29.039,29.039,29.039,0.81],["TR2-35",38.881,35.001,35.001,35.001,0.81],["TR2-41",44.919,41.039,41.039,41.039,0.81],["TR2T-17",20.995,17.115,17.115,17.115,0.81],["TR2T-23",26.957,23.077,23.077,23.077,0.81],["TR2T-29",32.919,29.039,29.039,29.039,0.81],["TT-17",24.995,17.115,17.115,17.115,0.81],["TT-23",30.957,23.077,23.077,23.077,0.81],["TX1-29",32.919,29.039,29.039,29.039,0.81],["TX2-35",40.92,35.84,35.84,35.84,1.1],["UR1",22.7,19.0,19.0,19.0,0.7],["UR2",28.7,25.0,25.0,25.0,0.7],["UR3",34.7,31.0,31.0,31.0,0.7],["UR4",40.7,37.0,37.0,37.0,0.7],["US1",22.7,19.0,19.0,19.0,0.64],["US2",28.7,25.0,25.0,25.0,0.69],["US3",34.7,31.0,31.0,31.0,0.69],["UT1",22.7,19.0,19.0,19.0,0.73],["UT2",28.7,25.0,25.0,25.0,0.81],["UT3",34.7,31.0,31.0,31.0,0.81],["WA1",36.6,31.0,25.0,19.0,0.87],["WA2",42.6,37.0,31.0,25.0,0.87],["WA3",48.6,43.0,37.0,31.0,0.87],["WA4",54.6,49.0,43.0,37.0,0.87],["WR1",36.6,31.0,25.0,19.0,0.86],["WR2",42.6,37.0,31.0,25.0,0.86],["WR3",48.6,43.0,37.0,31.0,0.86],["WR4",54.6,49.0,43.0,37.0,0.86],["WS1",36.6,31.0,25.0,19.0,0.775],["WS2",42.6,37.0,31.0,25.0,0.775],["WS3",48.6,43.0,37.0,31.0,0.775],["WT0",29.6,24.0,18.0,12.0,0.97],["WT1",36.6,31.0,25.0,19.0,0.97],["WT14.4",31.416,26.416,20.416,14.416,0.97],["WT15",32.6,27.0,21.0,15.0,0.97],["WT2",42.6,37.0,31.0,25.0,0.97],["WT3",48.6,43.0,37.0,31.0,0.97],["YDA1",26.5,20.5,20.5,20.5,0.834],["YDA2",31.5,25.5,25.5,25.5,0.804],["YDA3",36.5,30.5,30.5,30.5,0.834],["YDR1",26.5,20.5,20.5,20.5,0.774],["YDR2",31.5,25.5,25.5,25.5,0.774],["YDR3",36.5,30.5,30.5,30.5,0.774],["YDR4",41.5,35.5,35.5,35.5,0.774],["YDS1",26.5,20.5,20.5,20.5,0.744],["YDS2",31.5,25.5,25.5,25.5,0.744],["YDS3",36.5,30.5,30.5,30.5,0.774],["YDT1",26.5,20.5,20.5,20.5,0.982],["YDT2",31.5,25.5,25.5,25.5,0.982],["YDT3",36.5,30.5,30.5,30.5,0.982],["YLS1",25.55,20.55,20.55,20.55,0.674],["YLS1e",31.55,26.55,26.55,26.55,0.674],["YLS2e",36.55,31.55,31.55,31.55,0.689],["YLS2",30.55,25.55,25.55,25.55,0.689],["YLS3e",41.55,36.55,36.55,36.55,0.694],["YLS3",35.55,30.55,30.55,30.55,0.694],["YMA1",26.5,20.5,20.5,20.5,0.834],["YMA2",31.5,25.5,25.5,25.5,0.804],["YMA3",36.5,30.5,30.5,30.5,0.834],["YMR1",26.5,20.5,20.5,20.5,0.774],["YMR2",31.5,25.5,25.5,25.5,0.774],["YMR3",36.5,30.5,30.5,30.5,0.774],["YMR4",41.5,35.5,35.5,35.5,0.774],["YMS1",26.5,20.5,20.5,20.5,0.744],["YMS2",31.5,25.5,25.5,25.5,0.744],["YMS3",36.5,30.5,30.5,30.5,0.774],["YMT1",26.5,20.5,20.5,20.5,0.944],["YMT2",31.5,25.5,25.5,25.5,0.944],["YMT3",36.5,30.5,30.5,30.5,0.944],["YR1",25.55,20.55,20.55,20.55,0.704],["YR2",30.55,25.55,25.55,25.55,0.704],["YR3",35.55,30.55,30.55,30.55,0.704],["YR4",40.55,35.55,35.55,35.55,0.704],["YR5",45.55,40.55,40.55,40.55,0.704],["YR6",50.55,45.55,45.55,45.55,0.784],["YR7",55.55,50.55,50.55,50.55,0.784],["YR8",60.55,55.55,55.55,55.55,0.784],["YR9",65.55,60.55,60.55,60.55,0.784],["YS1",25.55,20.55,20.55,20.55,0.674],["YS2",30.55,25.55,25.55,25.55,0.689],["YS3",35.55,30.55,30.55,30.55,0.689],["YS3e",41.55,36.55,36.55,36.55,0.689],["YT1",25.55,20.55,20.55,20.55,0.873],["YT2",30.55,25.55,25.55,25.55,0.873],["YT3",35.55,30.55,30.55,30.55,0.873],["YT4",40.55,35.55,35.55,35.55,0.873],["Z1",24.25,19.25,19.25,19.25,0.74],["Z1e",30.25,25.25,25.25,25.25,0.74],["Z2",30.256,25.256,25.256,25.256,0.74],["Z2e",36.263,31.256,31.256,31.256,0.74],["Z3",36.263,31.263,31.263,31.263,0.74],["Z3e",42.263,37.263,37.263,37.263,0.74],["ZA1",24.314,19.314,19.314,19.314,0.914],["ZA2",30.331,25.331,25.331,25.331,0.914],["ZA3",36.337,31.337,31.337,31.337,0.914],["ZR1",24.35,19.35,19.35,19.35,0.84],["ZR1e",30.35,25.35,25.35,25.35,0.84],["ZR2",30.356,25.356,25.356,25.356,0.84],["ZR3",36.363,31.363,31.363,31.363,0.84],["ZRT1",24.35,19.35,19.35,19.35,0.84],["ZRT1e",30.35,25.35,25.35,25.35,0.84],["ZRT2",30.356,25.356,25.356,25.356,0.84]];
+const G2R = Math.PI / 200;
+function geometry(a, d, p) {
+  const AU = 2 * p * Math.sinh(a / (2 * p));
+  const k = d / AU;
+  const XA = -a / 2 + p * Math.asinh(k);
+  const YA = p * (Math.cosh(XA / p) - 1);
+  return { AU, k, XA, YA };
+}
+function Ftan(X, p, XA, YA, t, h) {
+  return p * (Math.cosh(X / p) - 1) - Math.sinh(X / p) * (X - XA + t) - YA + h;
+}
+function negOrNaN(v) { return !(v > 0); }
+function solveTangent(a, d, p, t, h) {
+  const g = geometry(a, d, p);
+  const xo = g.XA - t;
+  if (!(Ftan(xo, p, g.XA, g.YA, t, h) > 0)) return { ...g, above: true };
+  let lo = xo, hi = xo + Math.max(a, 1), n = 0;
+  while (!negOrNaN(Ftan(hi, p, g.XA, g.YA, t, h)) && n < 80) { hi = xo + (hi - xo) * 2; n++; }
+  for (let i = 0; i < 200; i++) {
+    const m = (lo + hi) / 2;
+    if (negOrNaN(Ftan(m, p, g.XA, g.YA, t, h))) hi = m; else lo = m;
+  }
+  const X = (lo + hi) / 2;
+  const th = Math.atan(Math.sinh(X / p));
+  return { ...g, X, u: X - g.XA, th, zen: 100 - th / G2R };
+}
+function solveParam(a, d, t, h, zen) {
+  const th = (100 - zen) * G2R;
+  const s = Math.asinh(Math.tan(th));
+  const G = p => { const g = geometry(a, d, p); const X = p * s; return { v: Ftan(X, p, g.XA, g.YA, t, h), u: X - g.XA }; };
+  const pmin = Math.max(a / 20, 1), pmax = 3e5, N = 800;
+  const roots = [];
+  let prevP = pmin, prev = G(pmin).v;
+  for (let i = 1; i <= N; i++) {
+    const p = pmin * Math.pow(pmax / pmin, i / N);
+    const v = G(p).v;
+    if (isFinite(prev) && isFinite(v) && (prev === 0 || prev * v < 0)) {
+      let lo = prevP, hi = p, flo = prev;
+      for (let j = 0; j < 120; j++) {
+        const m = Math.sqrt(lo * hi); const fm = G(m).v;
+        if (fm * flo > 0) { lo = m; flo = fm; } else hi = m;
+      }
+      const pr = Math.sqrt(lo * hi);
+      roots.push({ p: pr, u: G(pr).u });
+    }
+    prevP = p; prev = v;
+  }
+  const inside = roots.filter(r => r.u >= 0 && r.u <= a);
+  return { roots, inside, best: inside.length ? inside.reduce((b, r) => Math.abs(r.u - a / 2) < Math.abs(b.u - a / 2) ? r : b) : null };
+}
+function sags(a, d, p, XA, YA) {
+  const b2 = a * a + d * d;
+  const fDoc = a * Math.sqrt(b2) / (8 * p) * (1 + b2 / (48 * p * p));
+  const y = x => p * (Math.cosh(x / p) - 1);
+  const y1 = YA, y2 = y(XA + a);
+  const fMid = (y1 + y2) / 2 - y(XA + a / 2);
+  const xf = p * Math.asinh(d / a);
+  const fMax = y1 + d * (xf - XA) / a - y(xf);
+  const L = p * (Math.sinh((XA + a) / p) - Math.sinh(XA / p));
+  return { fDoc, fMid, fMax, uMax: xf - XA, L };
+}
+const $ = id => document.getElementById(id);
+const IDS = ['a','dp','t','tipo','ponto','H','HS','perna','cad','z1','z2','cota','F','zf','z','temp','ft','tolA','tolB'];
+const KEY = 'flechas-verificacao-v3';
+const DEFAULTS = {method:'int', a:'', dp:'', t:'', tipo:'', ponto:'sup', H:'', HS:'', perna:'', cad:'', z1:'', z2:'', cota:'', F:'', zf:'', z:'', temp:'', ft:'', tolA:'2,5', tolB:'1,5'};
+const EX_INT = {a:'425,48', t:'60', z1:'59,5046', z2:'81,6059', z:'82,1749', temp:'20', ft:'13,50'};
+const EX_PT = {a:'417,36', dp:'', tipo:'YLS2e', ponto:'sup', H:'31,55', HS:'0,689', perna:'0', cad:'4,24', cota:'5', F:'-350,56', zf:'97,673', z:'98,844', temp:'18', ft:'14,83'};
+const NAMES = {a:'o comprimento do vão', t:'a distância de visada', z1:'o desnível 1', z2:'o desnível 2',
+  H:'a altura H', HS:'o HS', cad:'a cadeia', cota:'a cota', F:'a distância de visada', zf:'o ângulo de fixação'};
+const COL = {ht:1, sup:2, med:3, hu:4};
+const PONTO_TXT = {ht:'o topo (Ht)', sup:'braço superior', med:'braço médio', hu:'braço inferior (Hu)'};
+
+// Tabela de apoios (última ocorrência prevalece, como o PROCV da folha)
+const POSTES = new Map();
+POSTES_RAW.forEach(r => POSTES.set(String(r[0]).toUpperCase(), r));
+
+const fmts = {};
+function fmt(v, dec){ if(!isFinite(v)) return '–'; const f = fmts[dec] || (fmts[dec] = new Intl.NumberFormat('pt-PT',{minimumFractionDigits:dec,maximumFractionDigits:dec})); return f.format(v); }
+function fmtIn(v){ return String(v).replace('.', ','); }
+function sfmt(v, dec){ return (v >= 0 ? '+' : '−') + fmt(Math.abs(v), dec); }
+function listPt(arr){ return arr.length < 2 ? arr.join('') : arr.slice(0, -1).join(', ') + ' e ' + arr[arr.length - 1]; }
+function parseNum(str){
+  let s = String(str || '').trim().replace(/[\s\u00A0\u202F]/g,'').replace(/\u2212/g,'-');
+  if(!s) return NaN;
+  if(s.includes(',')) s = s.replace(/\./g,'').replace(',', '.');
+  if(!/^[-+]?(\d+\.?\d*|\.\d+)$/.test(s)) return NaN;
+  return Number(s);
+}
+const method = () => document.querySelector('input[name=method]:checked').value;
+function getState(){ const s = {method: method()}; IDS.forEach(id => s[id] = $(id).value); return s; }
+function setState(s){
+  document.querySelector(`input[name=method][value=${s.method === 'pt' ? 'pt' : 'int'}]`).checked = true;
+  IDS.forEach(id => { if(s[id] !== undefined) $(id).value = s[id]; });
+  if(!$('ponto').value) $('ponto').value = 'sup';
+}
+
+// Flechas: método internacional (fórmula do documento) e português (catenária exata a meio vão, coluna M da folha)
+const fDocOf = (a, d, p) => { const b2 = a * a + d * d; return a * Math.sqrt(b2) / (8 * p) * (1 + b2 / (48 * p * p)); };
+const fMidOf = (a, d, p) => p * (Math.cosh(a / 2 / p) - 1) * Math.sqrt(1 + Math.pow(d / (2 * p * Math.sinh(a / 2 / p)), 2));
+function pFromSag(fn, a, d, f){
+  let lo = a / 100, hi = 1e8;
+  if(!(fn(a, d, lo) > f && fn(a, d, hi) < f)) return NaN;
+  for(let i = 0; i < 200; i++){ const m = Math.sqrt(lo * hi); if(fn(a, d, m) > f) lo = m; else hi = m; }
+  return Math.sqrt(lo * hi);
+}
+
+function tipoInfo(){
+  const row = POSTES.get($('tipo').value.trim().toUpperCase());
+  if(!$('tipo').value.trim()) return {msg:'Da tabela de apoios da folha LBL. Preenche H e HS.'};
+  if(!row) return {msg:'Tipo não encontrado na tabela. Indica H e HS à mão.', warn:true};
+  const parts = [['Ht',row[1]],['Br.Sup',row[2]],['Br.Med',row[3]],['Hu',row[4]],['HS',row[5]]].filter(p => p[1] != null).map(p => `${p[0]} ${fmt(p[1], p[1] % 1 ? (String(p[1]).split('.')[1].length) : 0)} m`);
+  return {row, msg: row[0] + ': ' + parts.join(', ') + '.'};
+}
+function applyTipo(){
+  const info = tipoInfo(); if(!info.row) return;
+  const h = info.row[COL[$('ponto').value]];
+  $('H').value = h == null ? '' : fmtIn(h);
+  $('HS').value = info.row[5] == null ? '' : fmtIn(info.row[5]);
+}
+
+function compute(S){
+  const v = {}; IDS.forEach(id => v[id] = parseNum(S[id]));
+  const M = S.method;
+  const R = {M, errors:[], warns:[], bad:new Set(), steps:[], v};
+  R.tolA = (isFinite(v.tolA) && v.tolA >= 0) ? v.tolA : 2.5;
+  R.tolB = (isFinite(v.tolB) && v.tolB >= 0) ? v.tolB : 1.5;
+  ['tolA','tolB'].forEach(id => { if(S[id].trim() && !(v[id] >= 0)) R.bad.add(id); });
+  const optional = M === 'pt' ? ['z','temp','ft','dp','perna'] : ['z','temp','ft'];
+  optional.forEach(id => { if(S[id].trim() && !isFinite(v[id])){ R.bad.add(id); R.errors.push('Há um valor que não é um número. Usa vírgula para as décimas.'); } });
+
+  const need = M === 'pt' ? ['a','H','HS','cad','cota','F'].concat(isFinite(v.dp) ? [] : ['zf']) : ['a','t','z1','z2'];
+  const miss = need.filter(id => !isFinite(v[id]));
+  miss.forEach(id => { if(S[id].trim()) R.bad.add(id); });
+  if(miss.length){ R.missing = miss.map(id => NAMES[id]); R.errors = [...new Set(R.errors)]; return R; }
+  if(!(v.a > 0)){ R.bad.add('a'); R.errors.push('O comprimento do vão tem de ser maior que zero.'); }
+  ['z1','z2','zf','z'].forEach(id => { if(need.includes(id) || id === 'z'){ if(isFinite(v[id]) && !(v[id] > 0 && v[id] < 200)){ R.bad.add(id); R.errors.push('As leituras zenitais têm de estar entre 0 e 200 grad.'); } } });
+  if(isFinite(v.ft) && !(v.ft > 0)){ R.bad.add('ft'); R.errors.push('A flecha teórica tem de ser maior que zero.'); }
+
+  let a = v.a, t, d, h;
+  if(M === 'int'){
+    if(!(v.t > 0)){ R.bad.add('t'); R.errors.push('A distância de visada tem de ser maior que zero.'); }
+    if(R.errors.length){ R.errors = [...new Set(R.errors)]; return R; }
+    const D1 = v.t * Math.tan((100 - v.z1) * G2R), D2 = (a + v.t) * Math.tan((100 - v.z2) * G2R);
+    t = v.t; d = D2 - D1; h = D1;
+    R.steps.push(['Desnível ao apoio 1, Desn₁', 't·tan(π/200·(100 − Z₁))', fmt(D1,3) + ' m'],
+                 ['Desnível ao apoio 2, Desn₂', '(a + t)·tan(π/200·(100 − Z₂))', fmt(D2,3) + ' m'],
+                 ['Desnível do vão, d', 'Desn₂ − Desn₁', fmt(d,3) + ' m']);
+    if(!(h > 0)) R.warns.push('O apoio 1 fica abaixo do teodolito. Confirma a leitura Z₁.');
+  } else {
+    if(!(a - v.F > 0)){ R.bad.add('F'); R.errors.push('Com esta distância de visada o teodolito fica para lá do apoio oposto. Confirma o sinal: negativa com o teodolito atrás do apoio de estação.'); }
+    if(R.errors.length){ R.errors = [...new Set(R.errors)]; return R; }
+    const perna = isFinite(v.perna) ? v.perna : 0;
+    h = v.H - v.HS - v.cad - v.cota + perna;
+    t = -v.F;
+    R.steps.push(['Fixação na estação sobre o teodolito, S', 'H − HS − cadeia − cota + perna', fmt(h,3) + ' m']);
+    if(isFinite(v.dp)){
+      d = v.dp;
+      R.steps.push(['Desnível do vão, d', 'desnível do perfil', fmt(d,3) + ' m']);
+    } else {
+      d = (a - v.F) * Math.tan((100 - v.zf) * G2R) - h;
+      R.steps.push(['Desnível do vão, d', '(a − F)·tan(π/200·(100 − Z_f)) − S', fmt(d,3) + ' m']);
+    }
+    if(!(h > 0)) R.warns.push('O ponto de fixação no apoio de estação fica abaixo do teodolito. Confirma H, cadeia e cota.');
+  }
+  Object.assign(R, {a, t, d, h, geoOK:true});
+  const fn = M === 'pt' ? fMidOf : fDocOf;
+  const devOf = (f, ft) => M === 'pt' ? 1 - ft / f : (f - ft) / ft;
+  const sagName = M === 'pt' ? 'p·(cosh(a/2p) − 1)·√(1 + (d/AU)²)' : 'a·√(a² + d²)/(8p)·(1 + (a² + d²)/(48p²))';
+
+  // Flecha teórica: leitura esperada e intervalo conforme
+  if(isFinite(v.ft)){
+    const ft = v.ft, A = R.tolA / 100, B = R.tolB / 100;
+    const fLo = M === 'pt' ? ft / (1 + A) : ft * (1 - A);
+    const fHi = M === 'pt' ? ft / (1 - B) : ft * (1 + B);
+    const pT = pFromSag(fn, a, d, ft);
+    const sT = isFinite(pT) ? solveTangent(a, d, pT, t, h) : null;
+    if(!sT || sT.above){
+      R.errors.push('Com esta geometria não há visada tangente ao cabo. Confirma a distância de visada e os desníveis.');
+    } else {
+      const zAt = f => { const pp = pFromSag(fn, a, d, f); if(!isFinite(pp)) return NaN; const s = solveTangent(a, d, pp, t, h); return s.above ? NaN : s.zen; };
+      const zLo = zAt(fLo), zHi = zAt(fHi);
+      R.theo = {ft, fLo, fHi, pT, sT, zT: sT.zen, zMin: Math.min(zLo, zHi), zMax: Math.max(zLo, zHi)};
+      if(sT.u < 0 || sT.u > a) R.warns.push(`Com a flecha teórica, a visada toca o cabo a ${fmt(sT.u,0)} m do apoio ${M === 'pt' ? 'de estação' : '1'}, fora do vão. Afasta ou aproxima o teodolito.`);
+      R.steps.push(['Parâmetro teórico, p₀', 'flecha(p₀) = flecha teórica', fmt(pT,1) + ' m'],
+                   ['Leitura esperada, Z₀', 'visada tangente com p₀', fmt(sT.zen,4) + ' grad'],
+                   ['Limites da flecha', `−${fmt(R.tolA,1)} % / +${fmt(R.tolB,1)} %`, `${fmt(fLo,3)} a ${fmt(fHi,3)} m`],
+                   ['Leituras conformes', 'visada tangente nos limites', `${fmt(R.theo.zMin,4)} a ${fmt(R.theo.zMax,4)} grad`]);
+    }
+  }
+
+  // Medição
+  if(isFinite(v.z) && !R.errors.length){
+    const sp = solveParam(a, d, t, h, v.z);
+    if(!sp.best){
+      R.bad.add('z');
+      R.errors.push('Esta visada ao seio do cabo não fica tangente ao cabo dentro do vão com nenhum parâmetro. Confirma as leituras.');
+    } else {
+      const p = sp.best.p, s = solveTangent(a, d, p, t, h), f = fn(a, d, p);
+      if(sp.inside.length > 1) R.warns.push('Há mais de um parâmetro possível com tangência dentro do vão; usa-se o de tangência mais perto do meio.');
+      if(s.u < 0.1 * a || s.u > 0.9 * a) R.warns.push(`A tangência fica a ${fmt(100 * s.u / a,0)} % do vão, perto de um apoio. A leitura é mais sensível: se puderes, ajusta a distância de visada.`);
+      R.meas = {p, s, f, th: Math.atan(Math.sinh(s.X / p))};
+      R.steps.push(['Elevação medida, θ', '100 − Z', fmt(100 - v.z,4) + ' grad'],
+                   ['Parâmetro real, p', 'visada tangente ao cabo', fmt(p,2) + ' m'],
+                   ['Tangência a partir do apoio ' + (M === 'pt' ? 'de estação' : '1'), 'X − X_A', fmt(s.u,1) + ' m'],
+                   ['Flecha medida', sagName, fmt(f,3) + ' m']);
+    }
+  }
+
+  // Sensibilidade a 0,01 grad
+  const zRef = R.meas ? v.z : (R.theo ? R.theo.zT : NaN);
+  if(isFinite(zRef) && !R.errors.length){
+    const fAt = zz => { const sp = solveParam(a, d, t, h, zz); return sp.best ? fn(a, d, sp.best.p) : NaN; };
+    const f0 = fAt(zRef), f1 = fAt(zRef + 0.01), f2 = fAt(zRef - 0.01);
+    R.sens = (Math.abs(f1 - f0) + Math.abs(f2 - f0)) / 2;
+  }
+
+  // Conformidade
+  if(R.meas && R.theo){
+    const f = R.meas.f, dev = devOf(f, R.theo.ft);
+    const lim = dev >= 0 ? R.tolB : R.tolA;
+    R.verdict = {f, dev, diff: f - R.theo.ft, lim, ok: Math.abs(dev) * 100 <= lim + 1e-9};
+    R.steps.push(['Desvio', M === 'pt' ? '1 − teórica / medida' : '(medida − teórica) / teórica', sfmt(dev * 100,2) + ' %']);
+  }
+
+  const src = R.meas ? {p:R.meas.p, s:R.meas.s, f:R.meas.f} : (R.theo && !R.errors.length ? {p:R.theo.pT, s:R.theo.sT, f:R.theo.ft} : null);
+  if(src && !R.errors.length) R.drawObj = {ok:true, M, a, t, d, h, p:src.p, geo:{XA:src.s.XA, YA:src.s.YA}, tan:{u:src.s.u, th:Math.atan(Math.sinh(src.s.X / src.p))}, sag:{fDoc:src.f}};
+  R.errors = [...new Set(R.errors)];
+  return R;
+}
+
+function gaugeHTML(R){
+  const devPct = R.verdict.dev * 100, A = R.tolA, B = R.tolB;
+  const lo = Math.min(-A - 1, devPct - 0.8), hi = Math.max(B + 1, devPct + 0.8);
+  const pos = x => (x - lo) / (hi - lo) * 100;
+  const pin = Math.min(94, Math.max(6, pos(devPct)));
+  return `<div class="gauge" role="img" aria-label="Desvio de ${sfmt(devPct,1)} %, tolerância de −${fmt(A,1)} % a +${fmt(B,1)} %">
+    <div class="track">
+      <div class="band" style="left:${pos(-A)}%;width:${pos(B) - pos(-A)}%"></div>
+      <div class="zero" style="left:${pos(0)}%"></div>
+      <div class="pin" style="left:${pin}%">${sfmt(devPct,1)} %</div>
+    </div>
+    <span class="tick" style="left:${pos(-A)}%">−${fmt(A,1)} %</span>
+    <span class="tick" style="left:${pos(0)}%">0</span>
+    <span class="tick" style="left:${pos(B)}%">+${fmt(B,1)} %</span>
+    <span class="side" style="left:0">cabo mais alto</span>
+    <span class="side" style="right:0">cabo mais baixo</span>
+  </div>`;
+}
+
+const NOTES = {
+  int: `<h2>Como o cálculo é feito</h2>
+    <p>Das leituras Z₁ e Z₂ saem os desníveis: Desn₁ = t·tan(100 − Z₁) e Desn₂ = (a + t)·tan(100 − Z₂), em grados. O desnível do vão é Desn₂ − Desn₁.</p>
+    <p>Com a visada ao seio do cabo procura-se o parâmetro p da catenária y = p·(cosh(x/p) − 1) que deixa essa visada tangente ao cabo dentro do vão. A flecha sai de a·√(a² + d²)/(8p)·(1 + (a² + d²)/(48p²)). O desvio é (medida − teórica) / teórica.</p>`,
+  pt: `<h2>Como o cálculo é feito</h2>
+    <p>Segue a folha LBL. A altura da fixação no apoio de estação sobre o teodolito é S = H − HS − cadeia − cota + perna. O desnível do vão é (a − F)·tan(100 − Z<sub>f</sub>) − S, ou o desnível do perfil se o indicares.</p>
+    <p>O parâmetro p é o que deixa a visada ao seio tangente à catenária dentro do vão. A flecha é a exata a meio vão, p·(cosh(a/2p) − 1)·√(1 + (d/AU)²), com AU = 2p·sinh(a/2p). O desvio é 1 − teórica / medida, como na coluna D da folha.</p>`
+};
+
+let lastR = null;
+function render(){
+  const S = getState(), M = S.method;
+  document.querySelectorAll('[data-m]').forEach(el => el.hidden = el.dataset.m !== M);
+  $('method-caption').textContent = M === 'pt'
+    ? 'Altura de fixação no apoio de estação pela tabela de apoios, desnível pelo ângulo de fixação no apoio oposto.'
+    : 'Desníveis pelas leituras zenitais aos dois pontos de fixação.';
+  syncTipoBtn();
+  const ti = tipoInfo(); $('tipo-hint').textContent = ti.msg; $('tipo-hint').className = 'hint' + (ti.row ? ' info' : '');
+  $('notes').innerHTML = NOTES[M];
+
+  const R = compute(S); lastR = R;
+  IDS.forEach(id => $(id).setAttribute('aria-invalid', R.bad.has(id) ? 'true' : 'false'));
+  $('tol-sum').textContent = `Tolerâncias: cabo mais alto −${fmt(R.tolA,1)} %, mais baixo +${fmt(R.tolB,1)} %`;
+  $('msgs').innerHTML = R.errors.map(m => `<p class="msg err">${m}</p>`).concat(R.warns.map(m => `<p class="msg warn">${m}</p>`)).join('');
+
+  const rd = $('reading'); rd.className = 'reading st-wait';
+  let verdict = '', lbl = '', big = '–', sub = '', gauge = '';
+  let d1l = 'Leitura esperada', d1v = '–', d2v = '–';
+  if(R.missing){
+    lbl = 'Resultado'; sub = 'Preenche ' + listPt(R.missing) + '.';
+  } else if(R.errors.length){
+    lbl = 'Resultado'; sub = 'Corrige os dados assinalados.';
+  } else if(R.verdict){
+    const V = R.verdict, cm = Math.abs(V.diff) * 100;
+    rd.className = 'reading ' + (V.ok ? 'st-ok' : 'st-bad');
+    verdict = `<span class="verdict ${V.ok ? 'ok' : 'bad'}">${V.ok ? 'Conforme' : 'Não conforme'}</span>`;
+    lbl = 'Flecha medida'; big = `${fmt(V.f,2)}<small>m</small>`;
+    const where = cm < 0.5 ? 'Cabo na posição teórica' : `Cabo ${fmt(cm,0)} cm mais ${V.diff > 0 ? 'baixo' : 'alto'} (${sfmt(V.dev * 100,1)} %)`;
+    sub = `Teórica ${fmt(R.theo.ft,2)} m. ${where}, ${V.ok ? 'dentro' : 'fora'} do limite de ${V.dev >= 0 ? '+' : '−'}${fmt(V.lim,1)} %.`;
+    gauge = gaugeHTML(R);
+    d1l = 'Resultado'; d1v = V.ok ? 'Conforme' : 'Não conforme'; d2v = `${fmt(V.f,2)} m`;
+  } else if(R.theo){
+    lbl = 'Leitura esperada no seio do cabo'; big = `${fmt(R.theo.zT,4)}<small>grad</small>`;
+    sub = `Conforme com leituras entre ${fmt(R.theo.zMin,4)} e ${fmt(R.theo.zMax,4)} grad. Introduz a visada medida para verificar.`;
+    d1v = `${fmt(R.theo.zT,4)} grad`;
+  } else if(R.meas){
+    lbl = 'Flecha medida'; big = `${fmt(R.meas.f,2)}<small>m</small>`;
+    sub = 'Indica a flecha teórica para verificar a conformidade.';
+    d1l = 'Resultado'; d1v = 'Sem flecha teórica'; d2v = `${fmt(R.meas.f,2)} m`;
+  } else {
+    lbl = 'Resultado'; sub = 'Falta a visada ao seio do cabo ou a flecha teórica.';
+  }
+  $('r-verdict').innerHTML = verdict; $('r-lbl').textContent = lbl; $('r-big').innerHTML = big;
+  $('r-sub').textContent = sub.replace(/ (%|m\b|grad\b|cm\b)/g, '\u00a0$1'); $('gauge').innerHTML = gauge;
+  $('dock-l1').textContent = d1l; $('dock-v1').textContent = d1v; $('dock-v2').textContent = d2v;
+
+  const st = [], ref = M === 'pt' ? 'apoio de estação' : 'apoio 1';
+  if(!R.errors.length && R.geoOK){
+    if(R.theo) st.push(`<div><dt>Limites da flecha</dt><dd>${fmt(R.theo.fLo,2)}–${fmt(R.theo.fHi,2)} m<span>teórica ${fmt(R.theo.ft,2)} m</span></dd></div>`);
+    if(R.theo && R.meas) st.push(`<div><dt>Leitura esperada</dt><dd>${fmt(R.theo.zT,4)} grad<span>conforme de ${fmt(R.theo.zMin,4)} a ${fmt(R.theo.zMax,4)}</span></dd></div>`);
+    if(R.meas) st.push(`<div><dt>Parâmetro real</dt><dd>${fmt(R.meas.p,1)} m<span>tangência a ${fmt(R.meas.s.u,1)} m do ${ref}</span></dd></div>`);
+    st.push(`<div><dt>Desnível do vão</dt><dd>${fmt(R.d,2)} m<span>fixação no ${ref} a ${fmt(R.h,2)} m acima do teodolito</span></dd></div>`);
+    if(isFinite(R.sens)) st.push(`<div><dt>Erro de 0,01 grad em Z</dt><dd>≈ ${fmt(R.sens * 100,0)} cm<span>de variação na flecha</span></dd></div>`);
+    if(isFinite(R.v.temp)) st.push(`<div><dt>Temperatura</dt><dd>${fmt(R.v.temp,1)} °C<span>registada na medição</span></dd></div>`);
+  }
+  $('stats').innerHTML = st.join('');
+  $('steps').innerHTML = (R.geoOK && !R.errors.length) ? R.steps.map(r => `<tr><td>${r[0]}</td><td class="f">${r[1]}</td><td class="v">${r[2]}</td></tr>`).join('') : '';
+  draw(R.drawObj || null);
+  save(S);
+}
+function nice(x){ const e = Math.pow(10, Math.floor(Math.log10(x))); const f = x / e; return (f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10) * e; }
+function draw(R){
+  const host = $('profile');
+  const W = Math.max(280, Math.round(host.clientWidth || 600));
+  const H = Math.round(Math.min(420, Math.max(250, W * 0.48)));
+  if(!R || !R.ok){
+    host.innerHTML = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Perfil indisponível"><text x="${W/2}" y="${H/2}" text-anchor="middle" class="m">O perfil aparece quando houver visada ao seio do cabo ou flecha teórica.</text></svg>`;
+    return;
+  }
+  const {a, t, d, h, p} = R, XA = R.geo.XA, YA = R.geo.YA, ut = R.tan.u, th = R.tan.th;
+  const cab = u => p * (Math.cosh((XA + u) / p) - 1) - YA;
+  const n = 160, pts = []; let cmin = Infinity;
+  for(let i = 0; i <= n; i++){ const u = a * i / n, vv = cab(u); pts.push([u, vv]); cmin = Math.min(cmin, vv); }
+  const vt = cab(ut);
+  let umin = Math.min(-t, 0), umax = a;
+  const du = umax - umin; umin -= 0.06 * du; umax += 0.05 * du;
+  let vmin = Math.min(-h, 0, d, cmin), vmax = Math.max(0, d, vt, -h);
+  const dv = Math.max(vmax - vmin, 1); vmin -= 0.04 * dv; vmax += 0.06 * dv;
+  const ml = 16, mr = 16, mt = 30, mb = 36;
+  let sx = (W - ml - mr) / (umax - umin), sy = (H - mt - mb) / (vmax - vmin);
+  if(sy < sx){ sx = sy; const need = (W - ml - mr) / sx, c = (umin + umax) / 2; umin = c - need / 2; umax = c + need / 2; }
+  const ex = sy / sx;
+  const X = u => ml + (u - umin) * sx, Y = vv => H - mb - (vv - vmin) * sy;
+  const uAt = px => umin + (px - ml) / sx, vAt = py => vmin + (H - mb - py) / sy;
+  const o = [];
+  o.push(`<defs><clipPath id="plot"><rect x="0" y="0" width="${W}" height="${H}"/></clipPath></defs>`);
+  // quadrícula
+  const hs = nice((umax - umin) / 7), vs = nice((vmax - vmin) / 5);
+  const u0 = uAt(0), u1 = uAt(W), v0 = vAt(H), v1 = vAt(0);
+  for(let k = Math.ceil(u0 / hs); k * hs <= u1; k++){ const x = X(k * hs).toFixed(1); o.push(`<line class="grid" x1="${x}" y1="0" x2="${x}" y2="${H}"/>`); }
+  for(let k = Math.ceil(v0 / vs); k * vs <= v1; k++){ const y = Y(k * vs).toFixed(1); o.push(`<line class="grid" x1="0" y1="${y}" x2="${W}" y2="${y}"/>`); }
+  // apoios
+  [[0, 0, R.M === 'pt' ? 'Estação' : 'Apoio 1'], [a, d, R.M === 'pt' ? 'Oposto' : 'Apoio 2']].forEach(([u, vv, name]) => {
+    const px = X(u), py = Y(vv), top = py - 8;
+    let s = `M${px - 3} ${top}L${px - 12} ${H}M${px + 3} ${top}L${px + 12} ${H}M${px - 15} ${py}L${px + 15} ${py}`;
+    let left = true;
+    for(let yy = top + 14; yy < H; yy += 20){
+      const w0 = 3 + 9 * (yy - top) / (H - top), w1 = 3 + 9 * (Math.min(H, yy + 20) - top) / (H - top);
+      s += left ? `M${px - w0} ${yy}L${px + w1} ${Math.min(H, yy + 20)}` : `M${px + w0} ${yy}L${px - w1} ${Math.min(H, yy + 20)}`;
+      left = !left;
+    }
+    o.push(`<path class="tower" d="${s}"/>`);
+    o.push(`<circle cx="${px}" cy="${py}" r="3.5" fill="var(--ink)"/>`);
+    o.push(`<text class="b" x="${Math.max(34, Math.min(W - 34, px))}" y="${top - 8}" text-anchor="middle">${name}</text>`);
+  });
+  // corda e condutor
+  o.push(`<line class="chord" x1="${X(0)}" y1="${Y(0)}" x2="${X(a)}" y2="${Y(d)}"/>`);
+  o.push(`<path class="wire" d="M${pts.map(q => X(q[0]).toFixed(1) + ' ' + Y(q[1]).toFixed(1)).join('L')}"/>`);
+  // flecha a meio vão
+  const xm = X(a / 2), yc = Y(d / 2), yw = Y(cab(a / 2));
+  o.push(`<path class="dim" d="M${xm} ${yc}L${xm} ${yw}M${xm - 5} ${yc}L${xm + 5} ${yc}M${xm - 5} ${yw}L${xm + 5} ${yw}"/>`);
+  o.push(`<text x="${Math.max(50, Math.min(W - 50, xm))}" y="${yc - 10}" text-anchor="middle" class="b">f = ${fmt(R.sag.fDoc,2)} m</text>`);
+  // visada
+  const ox = X(-t), oy = Y(-h), ue = uAt(W + 20), ve = -h + Math.tan(th) * (ue + t);
+  o.push(`<g clip-path="url(#plot)"><line class="sight" x1="${ox}" y1="${oy}" x2="${X(ue)}" y2="${Y(ve)}"/></g>`);
+  // teodolito
+  o.push(`<path class="inst" d="M${ox} ${oy + 5}L${ox - 10} ${oy + 26}M${ox} ${oy + 5}L${ox + 10} ${oy + 26}M${ox} ${oy + 5}L${ox} ${oy + 26}"/>`);
+  o.push(`<rect class="inst-head" x="${ox - 5}" y="${oy - 5}" width="10" height="10" rx="2"/>`);
+  o.push(`<text x="${ox + 14}" y="${oy + 24}">teodolito</text>`);
+  // tangência
+  const tx = X(ut), ty = Y(vt);
+  o.push(`<circle class="tan" cx="${tx}" cy="${ty}" r="5.5"/>`);
+  const right = th < 0 || tx < W * 0.3;
+  o.push(`<text x="${right ? tx + 10 : tx - 10}" y="${ty - 10}" text-anchor="${right ? 'start' : 'end'}">tangência</text>`);
+  // legendas
+  $('cap').textContent = `Perfil do vão, linha vermelha é a visada tangente ao cabo. ${ex > 1.05 ? 'Escala vertical exagerada ×' + fmt(ex, 1) : 'Escala 1:1'}, quadrícula de ${fmt(hs,0)} m por ${fmt(vs,0)} m.`;
+  const aria = `Perfil do vão de ${fmt(a,1)} m com desnível de ${fmt(d,1)} m; visada tangente ao cabo a ${fmt(ut,1)} m do P1; flecha ${fmt(R.sag.fDoc,2)} m.`;
+  host.innerHTML = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${aria}">${o.join('')}</svg>`;
+}
+
+function save(S){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){} }
+function load(){
+  try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if(s && typeof s === 'object') return Object.assign({}, DEFAULTS, s); } catch(e){}
+  try { const s = JSON.parse(localStorage.getItem('flechas-verificacao-v2') || 'null'); if(s && typeof s === 'object') return Object.assign({}, DEFAULTS, s, {method:'int'}); } catch(e){}
+  return Object.assign({}, DEFAULTS, EX_INT);
+}
+
+setState(load());
+document.querySelectorAll('input:not([type=radio])').forEach(el => el.addEventListener('input', render));
+document.querySelectorAll('input[type=radio]').forEach(el => el.addEventListener('change', render));
+
+// Seletor de tipo de apoio com pesquisa
+const POSTES_LIST = Array.from(POSTES.values()).sort((x, y) => String(x[0]).localeCompare(String(y[0]), 'pt', {numeric:true, sensitivity:'base'}));
+const combo = {items:[], active:-1};
+const isSheet = () => !matchMedia('(min-width: 900px)').matches;
+const dec = v => String(v).replace('.', ',');
+const esc = t => String(t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function syncTipoBtn(){ const v = $('tipo').value; $('tipo-val').textContent = v || 'Escolher apoio'; $('tipo-val').className = v ? '' : 'ph'; }
+function tipoDetail(r){ const p = []; if(r[1] != null) p.push('Ht ' + dec(r[1])); if(r[4] != null) p.push('Hu ' + dec(r[4])); return p.length ? p.join(', ') + ' m' : ''; }
+function filterTipos(q){
+  q = q.trim().toUpperCase();
+  if(!q) return [{none:true}].concat(POSTES_LIST);
+  const starts = [], has = [];
+  POSTES_LIST.forEach(r => { const n = String(r[0]).toUpperCase(); if(n.startsWith(q)) starts.push(r); else if(n.includes(q)) has.push(r); });
+  return starts.concat(has);
+}
+function setActive(i, scroll){
+  combo.active = i;
+  const lis = $('tipo-list').children;
+  for(let k = 0; k < lis.length; k++) lis[k].classList.toggle('active', k === i);
+  if(i >= 0 && lis[i]){
+    $('tipo-q').setAttribute('aria-activedescendant', lis[i].id);
+    const L = $('tipo-list'), top = lis[i].offsetTop, bot = top + lis[i].offsetHeight;
+    if(scroll === 'center') L.scrollTop = Math.max(0, top - L.clientHeight / 2);
+    else if(scroll){ if(top < L.scrollTop) L.scrollTop = top; else if(bot > L.scrollTop + L.clientHeight) L.scrollTop = bot - L.clientHeight; }
+  }
+  else $('tipo-q').removeAttribute('aria-activedescendant');
+}
+function renderTipoList(){
+  const q = $('tipo-q').value.trim();
+  const items = filterTipos(q); combo.items = items;
+  const cur = $('tipo').value.toUpperCase();
+  $('tipo-list').innerHTML = items.map((r, i) => r.none
+    ? `<li role="option" id="tipo-opt-${i}" data-i="${i}" aria-selected="${!cur}"><span class="n">Sem tipo</span><span class="d">H e HS à mão</span></li>`
+    : `<li role="option" id="tipo-opt-${i}" data-i="${i}" aria-selected="${String(r[0]).toUpperCase() === cur}"><span class="n">${esc(r[0])}</span><span class="d">${tipoDetail(r)}</span></li>`).join('');
+  $('tipo-count').textContent = !q ? `${POSTES_LIST.length} tipos na tabela` : items.length ? `${items.length} ${items.length === 1 ? 'tipo encontrado' : 'tipos encontrados'}` : `Nenhum tipo com «${q}». Fecha e escolhe «Sem tipo» para indicar H e HS à mão.`;
+  const sel = items.findIndex(r => r.none ? !cur : String(r[0]).toUpperCase() === cur);
+  $('tipo-list').scrollTop = 0;
+  setActive(q ? (items.length ? 0 : -1) : Math.max(0, sel), q ? false : 'center');
+}
+function openTipo(){
+  $('tipo-panel').hidden = false; $('tipo-btn').setAttribute('aria-expanded', 'true');
+  $('tipo-q').value = ''; renderTipoList();
+  if(isSheet()) document.body.style.overflow = 'hidden';
+  $('tipo-q').focus({preventScroll:true});
+}
+function closeTipo(focusBtn){
+  if($('tipo-panel').hidden) return;
+  $('tipo-panel').hidden = true; $('tipo-btn').setAttribute('aria-expanded', 'false');
+  document.body.style.overflow = '';
+  if(focusBtn) $('tipo-btn').focus({preventScroll:true});
+}
+function chooseTipo(i){
+  const r = combo.items[i]; if(!r) return;
+  $('tipo').value = r.none ? '' : r[0];
+  if(!r.none) applyTipo();
+  closeTipo(true); render();
+}
+$('tipo-btn').addEventListener('click', () => $('tipo-panel').hidden ? openTipo() : closeTipo(false));
+$('tipo-btn').addEventListener('keydown', e => { if(e.key === 'ArrowDown'){ e.preventDefault(); openTipo(); } });
+$('tipo-close').addEventListener('click', () => closeTipo(true));
+$('tipo-q').addEventListener('input', renderTipoList);
+$('tipo-q').addEventListener('keydown', e => {
+  const n = combo.items.length;
+  if(e.key === 'ArrowDown'){ e.preventDefault(); if(n) setActive(Math.min(n - 1, combo.active + 1), true); }
+  else if(e.key === 'ArrowUp'){ e.preventDefault(); if(n) setActive(Math.max(0, combo.active - 1), true); }
+  else if(e.key === 'Enter'){ e.preventDefault(); if(combo.active >= 0) chooseTipo(combo.active); else if(isSheet()) $('tipo-q').blur(); }
+  else if(e.key === 'Escape'){ e.preventDefault(); closeTipo(true); }
+});
+$('tipo-list').addEventListener('click', e => { const li = e.target.closest('li[data-i]'); if(li) chooseTipo(+li.dataset.i); });
+document.addEventListener('pointerdown', e => { if(!$('tipo-panel').hidden && !isSheet() && !e.target.closest('.combo')) closeTipo(false); });
+document.addEventListener('keydown', e => { if(e.key === 'Escape' && !$('tipo-panel').hidden) closeTipo(true); });
+$('ponto').addEventListener('change', () => { applyTipo(); render(); });
+$('ex').addEventListener('click', () => { const M = method(); setState(Object.assign(getState(), M === 'pt' ? EX_PT : EX_INT)); render(); });
+$('new').addEventListener('click', () => { const keep = {tolA:$('tolA').value, tolB:$('tolB').value, method:method()}; setState(Object.assign({}, DEFAULTS, keep)); render(); $('a').focus(); });
+$('next').addEventListener('click', () => {
+  const ids = method() === 'pt' ? ['zf','z'] : ['z1','z2','z'];
+  ids.forEach(id => $(id).value = ''); render(); $(ids[0]).focus();
+});
+$('dock').addEventListener('click', () => $('out').scrollIntoView({behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'}));
+let lastW = 0;
+if('ResizeObserver' in window) new ResizeObserver(() => { const w = Math.round($('profile').clientWidth); if(w !== lastW){ lastW = w; draw(lastR && lastR.drawObj || null); } }).observe($('profile'));
+if('IntersectionObserver' in window) new IntersectionObserver(es => es.forEach(e => $('dock').classList.toggle('hide', e.isIntersecting)), {threshold:0.12}).observe($('out'));
+render();
+</script>
+</body></html>

@@ -1,0 +1,234 @@
+{
+ "descricao": "Casos de validação. 'folha_lbl' são valores reais da folha LBL_LV_base.xls (referência). 'regressao' são resultados do protótipo, usados para detetar alterações involuntárias.",
+ "folha_lbl": [
+  {
+   "id": "Vão 9-10 CC1",
+   "a": 417.36,
+   "F": -350.56,
+   "cota": 5,
+   "H": 31.55,
+   "HS": 0.689,
+   "perna": 0,
+   "cadeia": 4.24,
+   "zf": 97.673,
+   "z": 98.844,
+   "ft": 14.83,
+   "esperado": {
+    "p": 1484.8419848665396,
+    "flecha": 14.689865715654125,
+    "conforme": true
+   }
+  },
+  {
+   "id": "Vão 9-10 CC3",
+   "a": 417.36,
+   "F": -350.56,
+   "cota": 5,
+   "H": 31.55,
+   "HS": 0.689,
+   "perna": 0,
+   "cadeia": 3.7,
+   "zf": 97.66,
+   "z": 98.791,
+   "ft": 14.83,
+   "esperado": {
+    "p": 1497.6979511207517,
+    "flecha": 14.563161752617797,
+    "conforme": true
+   }
+  },
+  {
+   "id": "Vão 9-10 CC5",
+   "a": 417.36,
+   "F": -350.56,
+   "cota": 5,
+   "H": 31.55,
+   "HS": 0.689,
+   "perna": 0,
+   "cadeia": 4.24,
+   "zf": 97.673,
+   "z": 98.822,
+   "ft": 14.83,
+   "esperado": {
+    "p": 1504.7424979899952,
+    "flecha": 14.49496297867758,
+    "conforme": true
+   }
+  },
+  {
+   "id": "Vão 9-10 CG1",
+   "a": 417.36,
+   "F": -350.56,
+   "cota": 5,
+   "H": 36.55,
+   "HS": 0.689,
+   "perna": 0,
+   "cadeia": 0.34,
+   "zf": 96.927,
+   "z": 97.494,
+   "ft": 11.38,
+   "esperado": {
+    "p": 1939.1090860468742,
+    "flecha": 11.240929132416673,
+    "conforme": true
+   }
+  },
+  {
+   "id": "Vão 12-13 CC1",
+   "a": 333.92,
+   "F": -341.81,
+   "cota": -2.36,
+   "H": 25.55,
+   "HS": 0.689,
+   "perna": 0,
+   "cadeia": 4.24,
+   "zf": 96.942,
+   "z": 97.706,
+   "ft": 9.49,
+   "esperado": {
+    "p": 1493.2070749807692,
+    "flecha": 9.347647208608619,
+    "conforme": true
+   }
+  },
+  {
+   "id": "Vão 12-13 CC3",
+   "a": 333.92,
+   "F": -341.81,
+   "cota": -2.36,
+   "H": 25.55,
+   "HS": 0.689,
+   "perna": 0,
+   "cadeia": 3.7,
+   "zf": 96.891,
+   "z": 97.63,
+   "ft": 9.49,
+   "esperado": {
+    "p": 1506.3949744503648,
+    "flecha": 9.265646276391848,
+    "conforme": true
+   }
+  },
+  {
+   "id": "Vão 12-13 CC5",
+   "a": 333.92,
+   "F": -341.81,
+   "cota": -2.36,
+   "H": 25.55,
+   "HS": 0.689,
+   "perna": 0,
+   "cadeia": 4.24,
+   "zf": 96.942,
+   "z": 97.704,
+   "ft": 9.49,
+   "esperado": {
+    "p": 1495.8322768649125,
+    "flecha": 9.33120795483972,
+    "conforme": true
+   }
+  },
+  {
+   "id": "Vão 12-13 CG1",
+   "a": 333.92,
+   "F": -341.81,
+   "cota": -2.36,
+   "H": 30.55,
+   "HS": 0.689,
+   "perna": 0,
+   "cadeia": 0.34,
+   "zf": 96.096,
+   "z": 96.415,
+   "ft": 7.28,
+   "esperado": {
+    "p": 1918.3210009644013,
+    "flecha": 7.273225104347501,
+    "conforme": true
+   }
+  },
+  {
+   "id": "Vão 12-13 CG2",
+   "a": 333.92,
+   "F": -341.81,
+   "cota": -2.36,
+   "H": 30.55,
+   "HS": 0.689,
+   "perna": 0,
+   "cadeia": 0.34,
+   "zf": 96.096,
+   "z": 96.41,
+   "ft": 7.28,
+   "esperado": {
+    "p": 1931.3826399332304,
+    "flecha": 7.223976058103082,
+    "conforme": true
+   }
+  }
+ ],
+ "regressao_internacional": [
+  {
+   "id": "Exemplo da app",
+   "a": 425.48,
+   "t": 60,
+   "z1": 59.5046,
+   "z2": 81.6059,
+   "z": 82.1749,
+   "ft": 13.5,
+   "esperado": {
+    "flecha": 13.533,
+    "conforme": true
+   }
+  },
+  {
+   "id": "Foto app existente CC1",
+   "a": 402.07,
+   "t": 267.11,
+   "z1": 84.311,
+   "z2": 92.176,
+   "z": 92.324,
+   "ft": 12.79,
+   "esperado": {
+    "flecha": 12.789,
+    "conforme": true
+   }
+  },
+  {
+   "id": "Foto app existente CC3",
+   "a": 402.07,
+   "t": 267.11,
+   "z1": 86.168,
+   "z2": 92.95,
+   "z": 93.209,
+   "ft": 12.79,
+   "esperado": {
+    "flecha": 12.837,
+    "conforme": true
+   }
+  },
+  {
+   "id": "Foto app existente CC5",
+   "a": 402.07,
+   "t": 267.11,
+   "z1": 88.072,
+   "z2": 93.727,
+   "z": 94.129,
+   "ft": 12.79,
+   "esperado": {
+    "flecha": 12.797,
+    "conforme": true
+   }
+  },
+  {
+   "id": "Foto app existente CC6",
+   "a": 402.07,
+   "t": 267.11,
+   "z1": 88.072,
+   "z2": 93.729,
+   "z": 94.129,
+   "ft": 12.79,
+   "esperado": {
+    "flecha": 12.779,
+    "conforme": true
+   }
+  }
+ ]
+}
