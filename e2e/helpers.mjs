@@ -14,3 +14,9 @@ export async function signedIn(page) {
   await seed(page, { users: USERS, session: 'ana@x.pt' });
   await seedLease(page, 'ana@x.pt', 3600000);
 }
+
+/** Semeia o estado falso só uma vez (não volta a escrever por cima ao recarregar a página). */
+export function seedOnce(page, data) {
+  return page.addInitScript(d => { if (!localStorage.getItem('fake-auth')) localStorage.setItem('fake-auth', JSON.stringify(d)); }, data);
+}
+export const ADMIN = 'admin@x.pt';

@@ -16,3 +16,12 @@ export function signInErrorCode(code) {
 export function verifyResult(code) {
   return REVOKED.has(code) ? 'revoked' : 'offline';
 }
+
+/** Registo (pedido de acesso): 'email-in-use' | 'weak-password' | 'invalid-email' | 'offline' | 'other' */
+export function signUpErrorCode(code) {
+  if (code === 'auth/email-already-in-use') return 'email-in-use';
+  if (code === 'auth/weak-password') return 'weak-password';
+  if (code === 'auth/invalid-email') return 'invalid-email';
+  if (code === 'auth/network-request-failed') return 'offline';
+  return 'other';
+}

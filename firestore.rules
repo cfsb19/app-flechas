@@ -1,0 +1,30 @@
+rules_version = '2';
+// Regras do Firestore da app Flechas. Só existem pedidos de acesso (nome, email, estado);
+// as medições nunca vêm para aqui. O administrador é definido só aqui (não está no código da app).
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function admin() {
+      return request.auth != null && request.auth.token.email == 'carlosfbatista19@gmail.com';
+    }
+    function proprio(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+    match /acessos/{uid} {
+      allow get: if admin() || proprio(uid);
+      allow list: if admin();
+      // Cada pessoa só pode criar o seu próprio pedido, pendente e com o email da sua conta.
+      allow create: if proprio(uid)
+        && request.resource.data.keys().hasOnly(['email', 'nome', 'estado', 'pedidoEm'])
+        && request.resource.data.estado == 'pendente'
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.nome is string && request.resource.data.nome.size() <= 80
+        && request.resource.data.pedidoEm == request.time;
+      allow update: if admin()
+        && request.resource.data.estado in ['aprovado', 'recusado', 'pendente'];
+      allow delete: if admin();
+    }
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

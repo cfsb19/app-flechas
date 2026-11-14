@@ -310,3 +310,4 @@ td.warn,dd.warn{color:var(--warn-ink);font-weight:500;font-size:.8rem;text-align
 .rodape .gate-link{font-size:.82rem;color:var(--muted);padding:0;min-height:0}
 .gate{min-height:calc(100vh - 60px)}
 #sobre p{margin:0 0 10px}
+.gate-pedir{margin-top:6px}

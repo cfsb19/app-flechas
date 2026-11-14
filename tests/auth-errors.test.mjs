@@ -21,3 +21,12 @@ test('verificação: erro de rede ou desconhecido nunca bloqueia', () => {
   assert.equal(verifyResult('auth/internal-error'), 'offline');
   assert.equal(verifyResult(undefined), 'offline');
 });
+
+test('erros de registo do Firebase mapeados para os códigos da app', async () => {
+  const { signUpErrorCode } = await import('../src/access/auth-errors.js');
+  assert.equal(signUpErrorCode('auth/email-already-in-use'), 'email-in-use');
+  assert.equal(signUpErrorCode('auth/weak-password'), 'weak-password');
+  assert.equal(signUpErrorCode('auth/invalid-email'), 'invalid-email');
+  assert.equal(signUpErrorCode('auth/network-request-failed'), 'offline');
+  assert.equal(signUpErrorCode('auth/operation-not-allowed'), 'other');
+});

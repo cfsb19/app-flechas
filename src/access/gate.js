@@ -1,5 +1,6 @@
 // Porta de acesso: login, verificação online e prazo offline.
 import { accessStatus, loadLease, loadLeaseEmail, saveLease, clearLease } from './lease.js';
+import { enviarAlerta } from './alerta.js';
 
 export const MSG = {
   'invalid-credentials': 'Email ou palavra-passe errados.',
@@ -9,6 +10,12 @@ export const MSG = {
   reset: 'Se o email existir, vais receber um link para definir a palavra-passe.',
   noEmail: 'Escreve o teu email primeiro.',
   stillOffline: 'Ainda sem ligação. Tenta outra vez quando tiveres rede.',
+  recusado: 'O teu acesso à app foi recusado ou retirado. Fala com o administrador.',
+  aindaPendente: 'Ainda não foi aprovado.',
+  'email-in-use': 'Já existe uma conta com este email. Entra com a tua palavra-passe ou usa "Esqueci-me da palavra-passe".',
+  'weak-password': 'A palavra-passe tem de ter pelo menos 6 caracteres.',
+  'invalid-email': 'O email não é válido.',
+  semNome: 'Escreve o teu nome.',
 };
 
 const VERIFY_TIMEOUT_MS = 10000;
@@ -26,11 +33,10 @@ export function startGate({ auth, storage = localStorage, now = Date.now, onUnlo
 
   function show(which, msg = '', info = false) {
     $('checking').hidden = true;
-    $('login').hidden = which !== 'login';
-    $('locked').hidden = which !== 'locked';
+    for (const s of ['login', 'locked', 'pedido', 'pendente']) $(s).hidden = which !== s;
     $('app').hidden = which !== 'app';
-    const m = which === 'login' ? $('login-msg') : which === 'locked' ? $('locked-msg') : null;
-    if (m) { m.textContent = msg; m.classList.toggle('info', info); }
+    const m = { login: 'login-msg', locked: 'locked-msg', pedido: 'pedido-msg', pendente: 'pendente-msg' }[which];
+    if (m) { $(m).textContent = msg; $(m).classList.toggle('info', info); }
   }
 
   function unlock(user, expiresAt) {
@@ -42,7 +48,16 @@ export function startGate({ auth, storage = localStorage, now = Date.now, onUnlo
 
   const leaseStatus = email => accessStatus({ signedIn: true, lastVerifiedAt: loadLease(storage, email), now: now() });
 
-  async function evaluate({ verifyNow, lockedMsg = '' }) {
+  /** Pedido de acesso: 'aprovado' grava o prazo; 'pendente' e 'recusado' tiram o acesso; 'offline' não muda nada. */
+  async function aplicarEstado(user, { pendMsg = '' } = {}) {
+    const e = await withTimeout(auth.estadoAcesso(), VERIFY_TIMEOUT_MS, 'offline');
+    if (e === 'aprovado') { saveLease(storage, user.email, now()); return true; }
+    if (e === 'pendente') { clearLease(storage); $('pendente-email').textContent = user.email; show('pendente', pendMsg); return false; }
+    if (e === 'recusado') { await auth.signOut(); clearLease(storage); show('login', MSG.recusado); return false; }
+    return true; // sem rede: aplica-se o prazo offline
+  }
+
+  async function evaluate({ verifyNow, lockedMsg = '', pendMsg = '' }) {
     // Não esperar pelo servidor para abrir: se o prazo guardado está válido, a calculadora abre já
     // e a verificação continua em segundo plano.
     const userP = auth.currentUser();
@@ -60,7 +75,7 @@ export function startGate({ auth, storage = localStorage, now = Date.now, onUnlo
 
     if (verifyNow && navigator.onLine) {
       const r = await withTimeout(auth.verify(), VERIFY_TIMEOUT_MS, 'offline');
-      if (r === 'ok') saveLease(storage, user.email, now());
+      if (r === 'ok') { if (!(await aplicarEstado(user, { pendMsg }))) return; }
       else if (r === 'revoked') {
         await auth.signOut(); clearLease(storage);
         show('login', MSG.disabled); return;
@@ -78,9 +93,10 @@ export function startGate({ auth, storage = localStorage, now = Date.now, onUnlo
     busy = true; $('login-go').disabled = true;
     try {
       await auth.signIn(email, pass);
-      saveLease(storage, email, now()); // o login bem-sucedido é uma verificação online
       $('login-pass').value = '';
-      await evaluate({ verifyNow: false });
+      // o login bem-sucedido é uma verificação online; falta confirmar o pedido de acesso
+      const user = (await auth.currentUser()) || { email };
+      if (await aplicarEstado(user)) await evaluate({ verifyNow: false });
     } catch (err) {
       show('login', MSG[err && err.code] || MSG.other);
     } finally { busy = false; $('login-go').disabled = false; }
@@ -92,6 +108,27 @@ export function startGate({ auth, storage = localStorage, now = Date.now, onUnlo
     try { await auth.resetPassword(email); show('login', MSG.reset, true); }
     catch (err) { show('login', MSG[err && err.code] || MSG.other); }
   });
+
+  $('pedir-abrir').addEventListener('click', () => { $('pedido-email').value = $('login-email').value.trim(); show('pedido'); $('pedido-nome').focus(); });
+  $('pedido-voltar').addEventListener('click', () => show('login'));
+  $('pedido-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    if (busy) return;
+    const nome = $('pedido-nome').value.trim(), email = $('pedido-email').value.trim(), pass = $('pedido-pass').value;
+    if (!nome) { show('pedido', MSG.semNome); return; }
+    busy = true; $('pedido-go').disabled = true;
+    try {
+      await auth.signUp(nome, email, pass);
+      $('pedido-pass').value = '';
+      enviarAlerta({ nome, email }); // não espera: o pedido já ficou registado
+      $('pendente-email').textContent = email;
+      show('pendente');
+    } catch (err) {
+      show('pedido', MSG[err && err.code] || MSG.other);
+    } finally { busy = false; $('pedido-go').disabled = false; }
+  });
+  $('pendente-verificar').addEventListener('click', () => evaluate({ verifyNow: true, pendMsg: MSG.aindaPendente }));
+  $('pendente-sair').addEventListener('click', async () => { await auth.signOut(); clearLease(storage); show('login'); });
 
   $('locked-retry').addEventListener('click', () =>
     evaluate({ verifyNow: true, lockedMsg: MSG.stillOffline }));
