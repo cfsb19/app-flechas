@@ -3,7 +3,7 @@
 // Ver docs/configuracao.md.
 export const firebaseConfig = {
   apiKey: 'PREENCHER',
-  authDomain: 'PREENCHER',
-  projectId: 'PREENCHER',
-  appId: 'PREENCHER',
+  authDomain: 'flechas-cabos.firebaseapp.com',
+  projectId: 'flechas-cabos',
+  appId: '1:990000048499:web:62ad5b311bb462cefcfd06',
 };
