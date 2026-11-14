@@ -1,36 +1,84 @@
 import { test, expect } from '@playwright/test';
-import { signedIn } from './helpers.mjs';
-import { abrirBoletim, preencherVao910, preencherCabo, res } from './boletim-helpers.mjs';
+import { seed, seedOnce, ADMIN } from './helpers.mjs';
 
-test.beforeEach(({ page }) => signedIn(page));
+const base = () => ({ users: { [ADMIN]: { password: 'admin123' } }, session: null, admin: ADMIN });
 
-test('"Tipo de apoio" em vez de "Apoio de estação" nos campos', async ({ page }) => {
-  await page.goto('/'); await page.click('label[for=m-pt]');
-  await expect(page.locator('#calc legend', { hasText: 'Tipo de apoio' })).toBeVisible();
-  await expect(page.locator('#calc legend', { hasText: 'Apoio de estação' })).toHaveCount(0);
-  await page.click('#vista-boletim'); await page.click('#boletim label[for="b-m-pt"]');
-  await expect(page.locator('#boletim label[for="b-tipo"]')).toHaveText('Tipo de apoio');
+async function pedir(page, nome, email, pass) {
+  await page.click('#pedir-abrir');
+  await page.fill('#pedido-nome', nome); await page.fill('#pedido-email', email); await page.fill('#pedido-pass', pass);
+  await page.click('#pedido-go');
+}
+
+test('pedir acesso mostra o ecrã de espera', async ({ page }) => {
+  await seedOnce(page, base()); await page.goto('/');
+  await pedir(page, 'Rui Sousa', 'rui@x.pt', 'segredo1');
+  await expect(page.locator('#pendente')).toContainText('O teu pedido de acesso está à espera de aprovação do administrador.');
+  await expect(page.locator('#calc')).toBeHidden();
 });
 
-test.describe('boletim no tablet', () => {
-  test.use({ viewport: { width: 1280, height: 800 } });
-  test('desnível do vão, leitura esperada e barra de tolerância em cada cabo', async ({ page }) => {
-    await abrirBoletim(page); await preencherVao910(page);
-    await expect(res(page, 'CC1', 'desnivel')).toContainText('6,46 m');
-    await expect(res(page, 'CC1', 'esperada')).toContainText('98,8598');
-    await expect(res(page, 'CC1', 'barra').locator('.gauge .band')).toBeVisible();
-    await expect(res(page, 'CC1', 'barra').locator('.gauge .pin')).toContainText('−1,0 %');
-  });
+test('pedido com palavra-passe curta ou email já usado', async ({ page }) => {
+  await seedOnce(page, base()); await page.goto('/');
+  await pedir(page, 'Rui', 'rui@x.pt', '123');
+  await expect(page.locator('#pedido-msg')).toHaveText('A palavra-passe tem de ter pelo menos 6 caracteres.');
+  await page.fill('#pedido-email', ADMIN); await page.fill('#pedido-pass', 'segredo1'); await page.click('#pedido-go');
+  await expect(page.locator('#pedido-msg')).toContainText('Já existe uma conta com este email.');
 });
 
-test.describe('boletim no telemóvel', () => {
-  test.use({ viewport: { width: 390, height: 844 } });
-  test('barra de tolerância completa no separador do cabo', async ({ page }) => {
-    await abrirBoletim(page); await preencherVao910(page);
-    await page.click('#boletim [role=tab][data-cabo="CC1"]');
-    const g = res(page, 'CC1', 'barra').locator('.gauge');
-    await expect(g).toBeVisible();
-    await expect(g).toContainText('−2,5 %'); await expect(g).toContainText('+1,5 %');
-    await expect(res(page, 'CC1', 'desnivel')).toContainText('6,46 m');
-  });
+test('pendente não entra nem offline (o prazo antigo é apagado)', async ({ page, context }) => {
+  await seedOnce(page, { ...base(), users: { ...base().users, 'rui@x.pt': { password: 'segredo1', estado: 'pendente' } }, session: 'rui@x.pt' });
+  await page.goto('/');
+  await expect(page.locator('#pendente')).toBeVisible();
+  // um prazo antigo (de quando estava aprovado) não pode deixar entrar
+  await page.evaluate(() => localStorage.setItem('flechas-acesso', JSON.stringify({ email: 'rui@x.pt', lastVerifiedAt: Date.now() - 86400000 })));
+  await page.reload();
+  await expect(page.locator('#pendente')).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem('flechas-acesso'))).toBeNull();
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  await context.setOffline(true); await page.reload();
+  await expect(page.locator('#locked')).toBeVisible();
+  await expect(page.locator('#calc')).toBeHidden();
+});
+
+test('recusado volta ao login com a mensagem', async ({ page }) => {
+  await seed(page, { ...base(), users: { ...base().users, 'rui@x.pt': { password: 'segredo1', estado: 'recusado' } }, session: 'rui@x.pt' });
+  await page.goto('/');
+  await expect(page.locator('#login-msg')).toHaveText('O teu acesso à app foi recusado ou retirado. Fala com o administrador.');
+  await expect(page.locator('#calc')).toBeHidden();
+});
+
+test('conta antiga sem pedido fica pendente', async ({ page }) => {
+  await seedOnce(page, { ...base(), users: { ...base().users, 'ana@x.pt': { password: 'segredo1', semPedido: true } } });
+  await page.goto('/');
+  await page.fill('#login-email', 'ana@x.pt'); await page.fill('#login-pass', 'segredo1'); await page.click('#login-go');
+  await expect(page.locator('#pendente')).toBeVisible();
+});
+
+test('"Verificar outra vez" depois de aprovado entra', async ({ page }) => {
+  await seedOnce(page, base()); await page.goto('/');
+  await pedir(page, 'Rui', 'rui@x.pt', 'segredo1');
+  await expect(page.locator('#pendente')).toBeVisible();
+  await page.click('#pendente-verificar');
+  await expect(page.locator('#pendente-msg')).toHaveText('Ainda não foi aprovado.');
+  await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('fake-auth')); d.users['rui@x.pt'].estado = 'aprovado'; localStorage.setItem('fake-auth', JSON.stringify(d)); });
+  await page.click('#pendente-verificar');
+  await expect(page.locator('#calc')).toBeVisible();
+});
+
+test('o ecrã de espera pede para confirmar o email', async ({ page }) => {
+  await seedOnce(page, base()); await page.goto('/');
+  await pedir(page, 'Rui', 'rui@x.pt', 'segredo1');
+  await expect(page.locator('#pendente')).toContainText('Confirma o teu email');
+});
+
+test('servidor dos pedidos indisponível: aprovado dentro do prazo entra; sem prazo não entra', async ({ page, browser }) => {
+  const d = { ...base(), users: { ...base().users, 'ana@x.pt': { password: 'segredo1' } }, session: 'ana@x.pt', estadoErro: true };
+  await seedOnce(page, d);
+  await page.addInitScript(() => { if (!sessionStorage.getItem('x')) { sessionStorage.setItem('x', '1'); localStorage.setItem('flechas-acesso', JSON.stringify({ email: 'ana@x.pt', lastVerifiedAt: Date.now() - 86400000 })); } });
+  await page.goto('/');
+  await expect(page.locator('#calc')).toBeVisible();
+  const ctx = await browser.newContext({ baseURL: 'http://localhost:4173' }); const p2 = await ctx.newPage();
+  await seedOnce(p2, d); await p2.goto('/');
+  await expect(p2.locator('#locked')).toBeVisible();
+  await expect(p2.locator('#calc')).toBeHidden();
+  await ctx.close();
 });

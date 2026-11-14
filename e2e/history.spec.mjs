@@ -158,3 +158,12 @@ test('regulação cabo a cabo também se guarda', async ({ page }) => {
   await expect(page.locator('#hist-list li').first()).toContainText('Regulação');
   await expect(page.locator('#hist-list li').first()).toContainText('98,844');
 });
+
+test('enviar ao administrador descarrega o JSON e explica como anexar', async ({ page }) => {
+  await guardarExemploPT(page);
+  await page.click('#hist-open');
+  const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#hist-enviar')]);
+  expect(dl.suggestedFilename()).toMatch(/^flechas-\d{4}-\d{2}-\d{2}\.json$/);
+  await expect(page.locator('#hist-msg')).toContainText('Anexa ao email o ficheiro');
+  await expect(page.locator('#hist-msg')).toContainText('carlos.batista@ren.pt');
+});

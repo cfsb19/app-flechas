@@ -14,7 +14,7 @@ test('rodapé na app e ecrã "Sobre" com autor e versão', async ({ page }) => {
   await signedIn(page);
   await page.goto('/');
   await expect(page.locator('#calc')).toBeVisible();
-  await expect(page.locator('#rodape')).toContainText('v1.1.1');
+  await expect(page.locator('#rodape')).toContainText('v1.2.0');
   await page.click('#sobre-abrir');
   await expect(page.locator('#sobre')).toBeVisible();
   await expect(page.locator('#sobre')).toContainText('C. Batista');

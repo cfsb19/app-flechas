@@ -39,7 +39,7 @@ export function mountHistory({ calc, boletim = null, history, setVista = () => {
 
   if (!history) {
     $('hist-warn').hidden = false;
-    ['hist-export-json', 'hist-export-csv', 'hist-import'].forEach(id => { $(id).disabled = true; });
+    ['hist-export-json', 'hist-export-csv', 'hist-import', 'hist-enviar'].forEach(id => { $(id).disabled = true; });
   }
 
   async function refresh() {
@@ -161,6 +161,30 @@ export function mountHistory({ calc, boletim = null, history, setVista = () => {
   };
   $('hist-export-json').addEventListener('click', exportAs('json', toJSON, 'application/json'));
   $('hist-export-csv').addEventListener('click', exportAs('csv', toCSV, 'text/csv;charset=utf-8'));
+
+  // Enviar ao administrador: partilha o JSON (APK e telemóveis com partilha de ficheiros) ou
+  // descarrega-o e abre o email. As medições só saem do aparelho por esta ação do utilizador.
+  const ADMIN_EMAIL = 'carlos.batista@ren.pt';
+  $('hist-enviar').addEventListener('click', async () => {
+    try {
+      const nome = `flechas-${today()}.json`, texto = toJSON(await history.list());
+      const nativo = !!(globalThis.Capacitor && globalThis.Capacitor.isNativePlatform && globalThis.Capacitor.isNativePlatform());
+      const file = typeof File === 'function' ? new File([texto], nome, { type: 'application/json' }) : null;
+      if (nativo) { await saveFile(nome, texto, 'application/json'); msg(`Escolhe o email e envia para ${ADMIN_EMAIL}.`); return; }
+      if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: 'Medições Flechas', text: `Para ${ADMIN_EMAIL}` });
+        msg('Medições partilhadas.'); return;
+      }
+      await saveFile(nome, texto, 'application/json');
+      const a = document.createElement('a');
+      a.href = `mailto:${ADMIN_EMAIL}?subject=${encodeURIComponent('Medições Flechas ' + today())}&body=${encodeURIComponent('Segue em anexo o ficheiro ' + nome + ' com as minhas medições.')}`;
+      document.body.append(a); a.click(); a.remove();
+      msg(`Anexa ao email o ficheiro ${nome} que acabou de ser descarregado e envia para ${ADMIN_EMAIL}.`);
+    } catch (err) {
+      if (err && err.name === 'AbortError') return; // partilha cancelada
+      msg('Não foi possível preparar o envio. Usa "Exportar JSON" e envia o ficheiro por email.', true);
+    }
+  });
   $('hist-import').addEventListener('change', async e => {
     const f = e.target.files && e.target.files[0];
     e.target.value = '';

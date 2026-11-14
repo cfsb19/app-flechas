@@ -25,7 +25,34 @@
     <p id="login-msg" class="gate-msg" role="alert"></p>
     <button type="submit" id="login-go" class="gate-btn">Entrar</button>
     <button type="button" id="login-reset" class="gate-link">Esqueci-me da palavra-passe</button>
+    <p class="gate-sub gate-pedir">Ainda não tens conta? <button type="button" id="pedir-abrir" class="gate-link">Pedir acesso</button></p>
   </form>
+</section>
+<section id="pedido" class="gate" hidden aria-labelledby="pedido-title">
+  <form class="gate-card" id="pedido-form" novalidate>
+    <h1 id="pedido-title">Pedir acesso</h1>
+    <p class="gate-sub">O administrador recebe o teu pedido e aprova-o. Depois entras com este email e esta palavra-passe.</p>
+    <label class="gate-field"><span>Nome</span>
+      <input id="pedido-nome" autocomplete="name" maxlength="80" required></label>
+    <label class="gate-field"><span>Email</span>
+      <input id="pedido-email" type="email" autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false" required></label>
+    <label class="gate-field"><span>Palavra-passe <small>(pelo menos 6 caracteres)</small></span>
+      <input id="pedido-pass" type="password" autocomplete="new-password" required></label>
+    <p id="pedido-msg" class="gate-msg" role="alert"></p>
+    <button type="submit" id="pedido-go" class="gate-btn">Enviar pedido</button>
+    <button type="button" id="pedido-voltar" class="gate-link">Já tenho conta</button>
+  </form>
+</section>
+<section id="pendente" class="gate" hidden>
+  <div class="gate-card">
+    <h1>Flechas</h1>
+    <p>O teu pedido de acesso está à espera de aprovação do administrador.</p>
+    <p class="gate-sub">Confirma o teu email: enviámos-te um link. O administrador vê se o email está confirmado antes de aprovar.</p>
+    <p class="gate-sub" id="pendente-email"></p>
+    <p id="pendente-msg" class="gate-msg" role="status"></p>
+    <button type="button" id="pendente-verificar" class="gate-btn">Verificar outra vez</button>
+    <button type="button" id="pendente-sair" class="gate-link">Sair</button>
+  </div>
 </section>
 <section id="locked" class="gate" hidden>
   <div class="gate-card">
@@ -40,6 +67,7 @@
 <div id="account" class="account">
   <span id="account-email"></span>
   <span id="account-until" class="account-until"></span>
+  <button type="button" id="admin-abrir" class="gate-link" hidden>Administração</button>
   <button type="button" id="account-logout" class="gate-link">Sair</button>
 </div>
 <div class="appbar" id="appbar">
@@ -303,8 +331,19 @@
   <div class="sheet-actions sheet-foot">
     <button type="button" class="link" id="hist-export-json">Exportar JSON</button>
     <button type="button" class="link" id="hist-export-csv">Exportar CSV</button>
+    <button type="button" class="link" id="hist-enviar">Enviar ao administrador</button>
     <label class="link hist-import-btn">Importar<input type="file" id="hist-import" accept="application/json,.json"></label>
   </div>
+</dialog>
+<dialog id="admin" class="sheet sheet-wide" aria-labelledby="admin-title">
+  <div class="sheet-head"><h2 id="admin-title">Administração</h2><button type="button" class="gate-link" id="admin-fechar">Fechar</button></div>
+  <p id="admin-msg" class="gate-msg" role="status"></p>
+  <h3 class="admin-h">Pedidos pendentes</h3>
+  <ul id="admin-pendentes" class="hist-list"></ul>
+  <h3 class="admin-h">Com acesso</h3>
+  <ul id="admin-aprovados" class="hist-list"></ul>
+  <h3 class="admin-h">Recusados ou retirados</h3>
+  <ul id="admin-recusados" class="hist-list"></ul>
 </dialog>
 <footer id="rodape" class="rodape">
   <span>© 2026 C. Batista · REN · Todos os direitos reservados</span>
