@@ -16,6 +16,7 @@ test('cópia num só ficheiro: abre sem login e sem rede', async ({ page }) => {
   await expect(page.locator('#login')).toBeHidden();
   await expect(page.locator('#calc')).toBeVisible();
   await expect(page.locator('#account')).toContainText('Versão local');
+  await expect(page.locator('#rodape')).toContainText('© 2026 C. Batista · REN');
   await page.click('#new'); await page.click('#ex');
   await expect(page.locator('#r-big')).toContainText('13,53');
   await page.click('#save'); await page.fill('#save-vao', '1-2'); await page.click('#save-ok');

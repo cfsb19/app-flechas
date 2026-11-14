@@ -303,3 +303,10 @@ td.warn,dd.warn{color:var(--warn-ink);font-weight:500;font-size:.8rem;text-align
 .gauge.mini .track{height:10px}
 .gauge.mini .pin{top:-20px;font-size:.78rem}
 .b-res dd .gauge{font-size:1rem;font-weight:400;margin:6px 4px 0}
+
+/* Rodapé de propriedade */
+.rodape{display:flex;flex-wrap:wrap;gap:4px 12px;justify-content:center;align-items:center;max-width:1180px;margin:0 auto;
+  padding:12px 16px calc(14px + env(safe-area-inset-bottom,0px));font-size:.82rem;color:var(--muted);text-align:center}
+.rodape .gate-link{font-size:.82rem;color:var(--muted);padding:0;min-height:0}
+.gate{min-height:calc(100vh - 60px)}
+#sobre p{margin:0 0 10px}
