@@ -8,3 +8,5 @@ dist/
 android/app/build/
 .superpowers/
 dist-local/
+test-results/
+playwright-report/
