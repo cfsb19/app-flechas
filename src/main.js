@@ -20,6 +20,13 @@ async function loadAuth() {
   return mod.createAuth();
 }
 
+// Rodapé de propriedade e ecrã "Sobre".
+const VERSAO = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '';
+document.getElementById('rodape-versao').textContent = VERSAO ? 'v' + VERSAO : '';
+document.getElementById('sobre-versao').textContent = VERSAO + (import.meta.env.VITE_AUTH === 'none' ? ' (cópia local, sem login)' : '');
+document.getElementById('sobre-abrir').addEventListener('click', () => document.getElementById('sobre').showModal());
+document.getElementById('sobre-fechar').addEventListener('click', () => document.getElementById('sobre').close());
+
 const LOCAL = import.meta.env.VITE_AUTH === 'none'; // cópia num único ficheiro HTML, sem login
 
 if (!LOCAL) initPwa();
