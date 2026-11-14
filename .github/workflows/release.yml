@@ -47,6 +47,7 @@ jobs:
       - name: Build do APK
         env:
           VERSION_CODE: ${{ github.run_number }}
+          APK_URL: ${{ vars.APK_URL }}
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
@@ -56,8 +57,16 @@ jobs:
           echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$ANDROID_KEYSTORE_PATH"
           npx cap sync android
           (cd android && chmod +x gradlew && ./gradlew --no-daemon assembleRelease)
-          cp android/app/build/outputs/apk/release/app-release.apk dist/flechas.apk
-          node -e "const v=require('./package.json').version; require('fs').writeFileSync('dist/version.json', JSON.stringify({version:v, apk:'/flechas.apk'}))"
+          mkdir -p apk && cp android/app/build/outputs/apk/release/app-release.apk "apk/flechas-$(node -p "require('./package.json').version").apk"
+          node -e "const v=require('./package.json').version; require('fs').writeFileSync('dist/version.json', JSON.stringify({version:v, apk:process.env.APK_URL||''}))"
+        # O plano Spark do Firebase não aceita ficheiros executáveis (.apk): o APK fica como artefacto
+        # privado do GitHub e é partilhado à parte (por exemplo pelo Google Drive, ver docs/configuracao.md).
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flechas-apk
+          path: apk/*.apk
+          retention-days: 90
 
       - name: Publicar no Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0

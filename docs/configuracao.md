@@ -86,7 +86,7 @@ O Android só aceita atualizações de um APK assinado sempre com a mesma chave.
 ### 3.4 Publicar
 
 - Junta as alterações ao ramo `main`, ou abre **Actions → Publicar (PWA + APK) → Run workflow**.
-- Para os telemóveis Android receberem o aviso de versão nova, aumenta o número `version` no `package.json` (por exemplo de `1.0.0` para `1.0.1`).
+- Para os telemóveis Android receberem o aviso de versão nova, aumenta o número `version` no `package.json` (por exemplo de `1.1.0` para `1.1.1`) e põe o APK novo no Google Drive (ver secção 4).
 
 Os limites gratuitos do Firebase Hosting (10 GB guardados e 360 MB transferidos por dia) chegam para uma equipa pequena.
 
@@ -99,10 +99,14 @@ Os limites gratuitos do Firebase Hosting (10 GB guardados e 360 MB transferidos 
 - A app funciona sem rede. É preciso abri-la com internet pelo menos uma vez a cada 7 dias.
 
 **Android:**
-1. Abre `https://<id-do-projeto>.web.app/flechas.apk` no telemóvel.
-2. Quando o telemóvel pedir, autoriza o browser a **instalar apps desconhecidas**.
-3. Quando houver uma versão nova, a app mostra um aviso com o botão **Descarregar**.
-- A PWA (Chrome → menu → **Instalar app**) também funciona no Android, mas o APK é o recomendado.
+
+O plano gratuito do Firebase não deixa alojar o APK (conta como ficheiro executável). Por isso o APK é partilhado à parte:
+1. No GitHub, abre **Actions → Publicar (PWA + APK)** e escolhe o run mais recente. No fundo da página, descarrega o artefacto **flechas-apk**: é um `.zip` que tem o `flechas-x.y.z.apk` lá dentro.
+2. Põe o APK numa pasta do teu Google Drive partilhada só com os colegas, ou envia-o diretamente.
+3. No telemóvel, a pessoa abre o APK e autoriza **instalar apps desconhecidas**.
+4. *(Opcional)* Para o aviso de versão nova trazer um botão **Descarregar**, cria no GitHub a variável `APK_URL` (**Settings → Secrets and variables → Actions → Variables**) com o link do Google Drive. Sem ela, o aviso diz para pedir o APK novo ao administrador.
+
+A PWA (Chrome → menu → **Instalar app**) também funciona no Android, sem APK.
 
 **PC (Edge ou Chrome):** abre o endereço. Se a política da empresa o permitir, o ícone **Instalar** na barra de endereço instala a app.
 

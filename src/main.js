@@ -26,7 +26,9 @@ if (!LOCAL) initPwa();
 
 // APK Android: avisar quando houver versão nova no alojamento.
 checkApkUpdate().then(u => {
-  if (u) banner('apk-update', `Há uma versão nova da app (${u.version}).`, 'Descarregar', () => window.open(u.apk, '_blank'));
+  if (!u) return;
+  if (u.apk) banner('apk-update', `Há uma versão nova da app (${u.version}).`, 'Descarregar', () => window.open(u.apk, '_blank'));
+  else banner('apk-update', `Há uma versão nova da app (${u.version}). Pede o APK novo ao administrador.`, 'Fechar', el => el.remove());
 });
 
 const VISTA = 'flechas-vista';
