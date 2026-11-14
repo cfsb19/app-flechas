@@ -23,7 +23,9 @@ export async function mountAdmin({ auth, banner }) {
         const li = document.createElement('li');
         const main = document.createElement('span'); main.className = 'hist-main';
         main.textContent = `${a.nome || '—'} · ${a.email || ''}`;
-        const w = document.createElement('span'); w.className = 'hist-when'; w.textContent = dataPt(a.pedidoEm);
+        const w = document.createElement('span'); w.className = 'hist-when';
+        w.textContent = [dataPt(a.pedidoEm), a.emailVerificado ? '✓ email confirmado' : '⚠ email por confirmar'].filter(Boolean).join(' · ');
+        if (!a.emailVerificado) w.classList.add('admin-aviso');
         const btns = document.createElement('span'); btns.className = 'hist-btns';
         for (const [rotulo, novo] of g.acoes) {
           const b = document.createElement('button'); b.type = 'button'; b.className = 'link'; b.textContent = rotulo;

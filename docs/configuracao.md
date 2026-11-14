@@ -15,19 +15,9 @@ Tudo o que aqui está é **gratuito**: o Firebase fica no plano Spark, que não 
 6. Em **Definições do projeto → As tuas apps**, adiciona uma app **Web** (ícone `</>`) chamada `Flechas`. Não ativas o Hosting nesse ecrã.
 7. Copia os quatro valores `apiKey`, `authDomain`, `projectId` e `appId` para `src/access/firebase-config.js`, no lugar de `PREENCHER`. Estes valores não são secretos e podem ir para o repositório.
 
-### Comprovar que o registo público está mesmo desligado
+### Registo público
 
-Este passo não pode ficar por fazer. Se o registo estiver ligado, qualquer pessoa com a app consegue criar uma conta.
-
-Corre este comando num terminal, com a tua `apiKey`:
-
-```
-curl -s -X POST "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=A_TUA_API_KEY" \
-  -H 'Content-Type: application/json' \
-  -d '{"email":"teste@exemplo.pt","password":"teste123","returnSecureToken":true}'
-```
-
-A resposta tem de conter `ADMIN_ONLY_OPERATION`. Se em vez disso trouxer um `idToken`, o registo continua ligado. Nesse caso, volta ao passo 4 e apaga o utilizador `teste@exemplo.pt` que acabou de ser criado.
+Até a versão 1.2.0 estar publicada, o registo deve ficar **desligado**. A partir da 1.2.0 volta a ser ligado (secção 7.3): quem se regista fica à espera da tua aprovação dentro da app.
 
 ## 2. Gerir utilizadores
 
@@ -161,9 +151,17 @@ Só ficam guardados o nome, o email e o estado de cada pedido. **As medições n
 1. Abre <https://console.cloud.google.com/iam-admin/iam> com o projeto `flechas-cabos` selecionado.
 2. Na linha da conta `github-publicar@…`, carrega no lápis ✏️ → **Adicionar outra função** e escolhe **Administrador de regras do Firebase** (*Firebase Rules Admin*). Guarda.
 
-### 7.3 Voltar a ligar o registo
+### 7.3 Voltar a ligar o registo (só depois de publicar a 1.2.0)
 
-Em **Authentication → Definições → Ações do utilizador**, marca **Ativar criação (registo)**. Quem se registar sem ser aprovado por ti fica no ecrã "À espera de aprovação" e não usa a app.
+**A ordem importa.** As versões antigas da app (o APK 1.1.x e PWAs que ainda não tenham sido atualizadas) não conhecem os pedidos de acesso. Quem se registasse e depois entrasse por uma versão antiga ficava com acesso sem aprovação.
+
+1. Publica a versão **1.2.0**: o GitHub faz isto ao juntar o PR.
+2. Substitui o APK no Google Drive pelo da 1.2.0 e apaga os antigos. Pede aos colegas com APK que instalem o novo.
+3. Só depois, em **Authentication → Definições → Ações do utilizador**, marca **Ativar criação (registo)**.
+
+Quem se registar fica no ecrã "À espera de aprovação" e recebe um email para confirmar o endereço. Na Administração vês **✓ email confirmado** ou **⚠ email por confirmar**. **Aprova só pedidos com o email confirmado.** Sem confirmação, alguém poderia pedir acesso com o email de um colega.
+
+**Cortar o acesso a sério:** **Retirar acesso** na app chega para a versão 1.2.0 e seguintes. Para cortar também em versões antigas que ainda andem por aí, desativa a conta na consola (**Authentication → Utilizadores → ⋮ → Desativar conta**).
 
 ### 7.4 Email de alerta (Google Apps Script, gratuito)
 

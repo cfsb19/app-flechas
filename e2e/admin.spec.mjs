@@ -41,3 +41,12 @@ test('quem não é administrador não vê a Administração', async ({ page }) =
   await expect(page.locator('#admin-abrir')).toBeHidden();
   await expect(page.locator('#admin-faixa')).toHaveCount(0);
 });
+
+test('a Administração mostra se o email do pedido está confirmado', async ({ page }) => {
+  const d = estado();
+  d.users['joao@x.pt'] = { password: 'segredo1', nome: 'João', estado: 'pendente', emailVerificado: true };
+  await seedOnce(page, d); await page.goto('/');
+  await page.click('#admin-abrir');
+  await expect(page.locator('#admin-pendentes li', { hasText: 'rui@x.pt' })).toContainText('email por confirmar');
+  await expect(page.locator('#admin-pendentes li', { hasText: 'joao@x.pt' })).toContainText('email confirmado');
+});

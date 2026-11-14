@@ -63,3 +63,22 @@ test('"Verificar outra vez" depois de aprovado entra', async ({ page }) => {
   await page.click('#pendente-verificar');
   await expect(page.locator('#calc')).toBeVisible();
 });
+
+test('o ecrã de espera pede para confirmar o email', async ({ page }) => {
+  await seedOnce(page, base()); await page.goto('/');
+  await pedir(page, 'Rui', 'rui@x.pt', 'segredo1');
+  await expect(page.locator('#pendente')).toContainText('Confirma o teu email');
+});
+
+test('servidor dos pedidos indisponível: aprovado dentro do prazo entra; sem prazo não entra', async ({ page, browser }) => {
+  const d = { ...base(), users: { ...base().users, 'ana@x.pt': { password: 'segredo1' } }, session: 'ana@x.pt', estadoErro: true };
+  await seedOnce(page, d);
+  await page.addInitScript(() => { if (!sessionStorage.getItem('x')) { sessionStorage.setItem('x', '1'); localStorage.setItem('flechas-acesso', JSON.stringify({ email: 'ana@x.pt', lastVerifiedAt: Date.now() - 86400000 })); } });
+  await page.goto('/');
+  await expect(page.locator('#calc')).toBeVisible();
+  const ctx = await browser.newContext({ baseURL: 'http://localhost:4173' }); const p2 = await ctx.newPage();
+  await seedOnce(p2, d); await p2.goto('/');
+  await expect(p2.locator('#locked')).toBeVisible();
+  await expect(p2.locator('#calc')).toBeHidden();
+  await ctx.close();
+});

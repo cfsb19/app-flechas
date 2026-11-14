@@ -19,8 +19,13 @@ service cloud.firestore {
         && request.resource.data.email == request.auth.token.email
         && request.resource.data.nome is string && request.resource.data.nome.size() <= 80
         && request.resource.data.pedidoEm == request.time;
-      allow update: if admin()
-        && request.resource.data.estado in ['aprovado', 'recusado', 'pendente'];
+      allow update: if (admin()
+          && request.resource.data.estado in ['aprovado', 'recusado', 'pendente'])
+        // A própria pessoa só pode marcar o email como confirmado, e só se o Firebase o confirmar.
+        || (proprio(uid)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['emailVerificado'])
+          && request.resource.data.emailVerificado == true
+          && request.auth.token.email_verified == true);
       allow delete: if admin();
     }
     match /{document=**} {

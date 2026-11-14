@@ -40,6 +40,7 @@ export function createAuth() {
       if (!navigator.onLine) return 'offline';
       const d = read(), u = d.users[d.session];
       if (!u) return 'recusado';
+      if (d.estadoErro) return 'offline'; // simula Firestore indisponível (rede, proxy, permissões)
       if (d.session === d.admin) return 'aprovado';
       if (u.semPedido) { delete u.semPedido; u.estado = 'pendente'; write(d); }
       return u.estado || 'aprovado';
@@ -49,7 +50,7 @@ export function createAuth() {
       const d = read();
       if (d.session !== d.admin) throw fail('permission-denied');
       return Object.entries(d.users).filter(([e]) => e !== d.admin)
-        .map(([email, u]) => ({ uid: email, email, nome: u.nome || email, estado: u.estado || 'aprovado', pedidoEm: null }));
+        .map(([email, u]) => ({ uid: email, email, nome: u.nome || email, estado: u.estado || 'aprovado', emailVerificado: !!u.emailVerificado, pedidoEm: null }));
     },
     async decidir(uid, estado) {
       const d = read();
