@@ -26,7 +26,9 @@ export async function checkApkUpdate({
     const res = await fetchImpl(base + '/version.json', { cache: 'no-store' });
     if (!res.ok) return null;
     const v = await res.json();
-    if (!v || !isNewer(v.version, local) || typeof v.apk !== 'string') return null;
-    return { version: v.version, apk: new URL(v.apk, base + '/').href };
+    if (!v || !isNewer(v.version, local)) return null;
+    // O APK não pode ficar no Firebase Hosting (plano Spark): o link é opcional (ex.: Google Drive).
+    const apk = typeof v.apk === 'string' && v.apk.trim() ? new URL(v.apk, base + '/').href : null;
+    return { version: v.version, apk };
   } catch (e) { return null; }
 }

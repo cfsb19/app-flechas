@@ -26,3 +26,13 @@ test('checkApkUpdate não faz nada fora do APK ou sem versão nova', async () =>
   assert.equal(await checkApkUpdate({ fetchImpl, baseUrl: 'https://x', local: '1.1.0', native: true }), null);
   assert.equal(await checkApkUpdate({ fetchImpl, baseUrl: '', local: '1.0.0', native: true }), null);
 });
+
+test('versão nova sem link para o APK: avisa na mesma, com apk null', async () => {
+  const fetchImpl = async () => ({ ok: true, json: async () => ({ version: '1.2.0', apk: '' }) });
+  assert.deepEqual(await checkApkUpdate({ fetchImpl, baseUrl: 'https://x.web.app', local: '1.1.0', native: true }), { version: '1.2.0', apk: null });
+});
+
+test('link do APK absoluto (por exemplo Google Drive) é mantido', async () => {
+  const fetchImpl = async () => ({ ok: true, json: async () => ({ version: '1.2.0', apk: 'https://drive.google.com/file/d/abc/view' }) });
+  assert.deepEqual(await checkApkUpdate({ fetchImpl, baseUrl: 'https://x.web.app', local: '1.1.0', native: true }), { version: '1.2.0', apk: 'https://drive.google.com/file/d/abc/view' });
+});
