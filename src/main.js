@@ -12,6 +12,7 @@ import { startGate } from './access/gate.js';
 import { openHistory } from './history/store.js';
 import { mountHistory } from './history/ui.js';
 import { mountBoletim } from './boletim/ui.js';
+import { mountAdmin } from './access/admin-ui.js';
 
 async function loadAuth() {
   const mod = import.meta.env.VITE_AUTH === 'fake'
@@ -69,7 +70,7 @@ if (LOCAL) {
   mountApp();
 } else {
   loadAuth().then(auth => {
-    startGate({ auth, onUnlock: () => { mountApp(); } });
+    startGate({ auth, onUnlock: () => { mountApp(); mountAdmin({ auth, banner }).catch(() => {}); } });
   }).catch(err => {
     document.getElementById('login').hidden = false;
     document.getElementById('login-msg').textContent = err.message;

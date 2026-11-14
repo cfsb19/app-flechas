@@ -311,3 +311,5 @@ td.warn,dd.warn{color:var(--warn-ink);font-weight:500;font-size:.8rem;text-align
 .gate{min-height:calc(100vh - 60px)}
 #sobre p{margin:0 0 10px}
 .gate-pedir{margin-top:6px}
+.admin-h{margin:14px 0 6px;font-size:1rem;font-family:'Barlow Semi Condensed','Barlow',system-ui,sans-serif}
+.admin-vazio{color:var(--muted);background:none !important;border:0 !important;padding:2px 0 !important}

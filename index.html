@@ -66,6 +66,7 @@
 <div id="account" class="account">
   <span id="account-email"></span>
   <span id="account-until" class="account-until"></span>
+  <button type="button" id="admin-abrir" class="gate-link" hidden>Administração</button>
   <button type="button" id="account-logout" class="gate-link">Sair</button>
 </div>
 <div class="appbar" id="appbar">
@@ -331,6 +332,16 @@
     <button type="button" class="link" id="hist-export-csv">Exportar CSV</button>
     <label class="link hist-import-btn">Importar<input type="file" id="hist-import" accept="application/json,.json"></label>
   </div>
+</dialog>
+<dialog id="admin" class="sheet sheet-wide" aria-labelledby="admin-title">
+  <div class="sheet-head"><h2 id="admin-title">Administração</h2><button type="button" class="gate-link" id="admin-fechar">Fechar</button></div>
+  <p id="admin-msg" class="gate-msg" role="status"></p>
+  <h3 class="admin-h">Pedidos pendentes</h3>
+  <ul id="admin-pendentes" class="hist-list"></ul>
+  <h3 class="admin-h">Com acesso</h3>
+  <ul id="admin-aprovados" class="hist-list"></ul>
+  <h3 class="admin-h">Recusados ou retirados</h3>
+  <ul id="admin-recusados" class="hist-list"></ul>
 </dialog>
 <footer id="rodape" class="rodape">
   <span>© 2026 C. Batista · REN · Todos os direitos reservados</span>
