@@ -143,3 +143,42 @@ A PWA (Chrome → menu → **Instalar app**) também funciona no Android, sem AP
 - **Onde a obter:** no GitHub, abre **Actions → Testes**, escolhe o run mais recente do ramo `main` e descarrega o artefacto **flechas-html** no fundo da página. Fica disponível durante 30 dias depois de cada alteração.
 - **Medições:** ficam guardadas no browser onde abres o ficheiro. Abrir o mesmo ficheiro noutro browser ou noutro aparelho começa vazio. Em alguns visualizadores, como o Readdle, o histórico pode não ficar guardado. Exporta em JSON com frequência.
 - A cópia não se atualiza sozinha. Quando houver uma versão nova, descarrega o artefacto outra vez.
+
+## 7. Pedidos de acesso (aprovar na app, sem ir à consola)
+
+Com isto, quem quer usar a app carrega em **Pedir acesso** no login. Tu recebes um email e aprovas ou recusas na app, em **Administração**, na barra de cima. O administrador é a conta `carlosfbatista19@gmail.com`, definida só nas regras do Firestore (`firestore.rules`).
+
+### 7.1 Criar a base de dados dos pedidos (Firestore)
+
+1. Na consola do Firebase, abre **Firestore Database → Criar base de dados**.
+2. Escolhe a edição **Standard**, a localização **europe-west1 (Bélgica)** ou **eur3 (Europa)**, e o modo **produção**. Carrega em **Criar**.
+3. Não precisas de mexer nas regras: são publicadas pelo GitHub em cada publicação.
+
+Só ficam guardados o nome, o email e o estado de cada pedido. **As medições nunca vão para lá.**
+
+### 7.2 Dar à conta de serviço permissão para publicar as regras
+
+1. Abre <https://console.cloud.google.com/iam-admin/iam> com o projeto `flechas-cabos` selecionado.
+2. Na linha da conta `github-publicar@…`, carrega no lápis ✏️ → **Adicionar outra função** e escolhe **Administrador de regras do Firebase** (*Firebase Rules Admin*). Guarda.
+
+### 7.3 Voltar a ligar o registo
+
+Em **Authentication → Definições → Ações do utilizador**, marca **Ativar criação (registo)**. Quem se registar sem ser aprovado por ti fica no ecrã "À espera de aprovação" e não usa a app.
+
+### 7.4 Email de alerta (Google Apps Script, gratuito)
+
+1. Abre <https://script.new> com a tua conta Google (a do Firebase).
+2. Apaga o que lá estiver e cola o conteúdo do ficheiro `docs/alerta-apps-script.gs`. Dá ao projeto o nome `Flechas alerta` e guarda.
+3. Carrega em **Implementar → Nova implementação**. Na roda dentada escolhe **Aplicação Web** e preenche:
+   - **Executar como:** Eu
+   - **Quem tem acesso:** Qualquer pessoa
+4. Carrega em **Implementar** e autoriza o acesso. O Google avisa que a app não está verificada: carrega em **Avançadas → Aceder a Flechas alerta**.
+5. Copia o **URL da aplicação Web**, que acaba em `/exec`.
+6. No GitHub, vai a **Settings → Secrets and variables → Actions → Variables** e cria a variável `ALERTA_URL` com esse URL.
+7. Na publicação seguinte, cada pedido novo envia um email para carlos.batista@ren.pt.
+
+### 7.5 Contas que já existiam
+
+As contas que criaste na consola aparecem uma vez em **Administração → Pedidos pendentes**, no primeiro login de cada pessoa. Aprova-as uma vez.
+
+**Nota de segurança:** não apagues a tua conta `carlosfbatista19@gmail.com` do Firebase. Com o registo ligado, outra pessoa poderia criar uma conta nova com esse email e ficar como administrador.

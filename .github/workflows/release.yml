@@ -37,6 +37,7 @@ jobs:
       - name: Build da PWA
         env:
           VITE_HOSTING_URL: ${{ vars.HOSTING_URL }}
+          VITE_ALERTA_URL: ${{ vars.ALERTA_URL }}
         run: npm run build
 
       - uses: actions/setup-java@v4
@@ -67,6 +68,14 @@ jobs:
           name: flechas-apk
           path: apk/*.apk
           retention-days: 90
+
+      # As regras vão antes da app: uma app nova com regras antigas não deixaria ninguém entrar.
+      - name: Publicar as regras do Firestore (pedidos de acesso)
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          echo "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
+          GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json" npx --yes firebase-tools@15.36.0 deploy --only firestore:rules --project default --non-interactive
 
       - name: Publicar no Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
