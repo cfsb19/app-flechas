@@ -239,3 +239,67 @@ button.link:disabled{opacity:.5;cursor:not-allowed}
 .hist-btns{display:flex;gap:8px}
 .hist-import-btn{position:relative;overflow:hidden;cursor:pointer}
 .hist-import-btn input{position:absolute;inset:0;opacity:0;cursor:pointer}
+
+/* Barra de vista e modo; temperatura */
+.appbar{display:flex;flex-wrap:wrap;gap:8px 16px;max-width:1180px;margin:0 auto;padding:10px 16px 0}
+.appbar .seg{margin:0;flex:1 1 280px}
+.seg-sm label,.seg-btn button{padding:10px 8px;min-height:44px;font-size:.98rem}
+.seg-btn button{flex:1;font:inherit;font-weight:600;font-family:'Barlow Semi Condensed','Barlow',system-ui,sans-serif;background:none;color:var(--ink);border:0;cursor:pointer}
+.seg-btn button:not(:first-child){border-left:1.5px solid var(--ink)}
+.seg-btn button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.seg-btn button:focus-visible{outline:3px solid var(--mark);outline-offset:-4px}
+.tc{margin:4px 0 10px;font-weight:600;font-variant-numeric:tabular-nums}
+.lbl{display:block;font-weight:600;margin-bottom:6px}
+.teor-tab .field label{font-variant-numeric:tabular-nums}
+@media (pointer:coarse){ input,select,button{min-height:44px} }
+
+/* Boletim do vão */
+.boletim .wrap{padding-bottom:40px}
+.b-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:10px 0 6px}
+.b-head h2{margin:0;font-family:'Barlow Semi Condensed','Barlow',system-ui,sans-serif;font-size:1.5rem}
+.b-vao{display:grid;gap:0 22px}
+@media (min-width:1000px){.b-vao{grid-template-columns:repeat(3,minmax(0,1fr));align-items:start}}
+@media (min-width:760px) and (max-width:999px){.b-vao{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.b-teor{margin-bottom:12px}
+.b-cabos{margin-top:14px}
+.b-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--rule);border-radius:8px;background:var(--panel)}
+.b-table{border-collapse:separate;border-spacing:0;width:100%;min-width:900px;font-variant-numeric:tabular-nums}
+.b-table th,.b-table td{padding:6px 6px;border-bottom:1px solid var(--grid);text-align:center;vertical-align:middle}
+.b-table thead th{font-family:'Barlow Semi Condensed','Barlow',system-ui,sans-serif;font-weight:700;background:var(--panel)}
+.b-table thead .grp{color:var(--muted);font-weight:600;font-size:.85rem;text-transform:uppercase;letter-spacing:.04em;border-left:1px solid var(--rule)}
+.b-table tbody th,.b-table thead th.corner{position:sticky;left:0;z-index:2;background:var(--panel);text-align:left;white-space:nowrap;font-weight:600;padding-left:12px;border-right:1px solid var(--rule)}
+.b-table tbody th small{color:var(--muted);font-weight:400}
+.b-table td:nth-child(2n+2){border-left:1px solid var(--grid)}
+.b-table input{width:100%;min-width:72px;font:inherit;padding:8px 6px;border:1.5px solid var(--rule);border-radius:6px;background:var(--field);color:var(--ink);text-align:right}
+.b-table input:focus-visible,.b-panel input:focus-visible{outline:3px solid var(--mark);outline-offset:1px}
+.b-table tr.res td{font-weight:600}
+.b-table tr.res:first-of-type td{border-top:2px solid var(--rule)}
+td.ok,dd.ok{color:var(--ok)} td.bad,dd.bad{color:var(--err-ink)}
+.b-msg{font-weight:400;font-size:.82rem;color:var(--muted)}
+.b-teorcell{font-size:.92rem}
+.b-teorcell .mini{display:block;margin:4px auto 0;font:inherit;font-size:.8rem;background:none;border:1px solid var(--rule);border-radius:5px;padding:4px 6px;color:var(--ink);cursor:pointer;min-height:32px}
+.b-own{margin-top:6px;display:grid;gap:4px}
+.b-own .seg{margin:0}
+.b-own .field label{font-size:.8rem}
+.b-tabs{display:flex;overflow-x:auto;gap:4px;border-bottom:2px solid var(--rule);margin-bottom:12px}
+.b-tabs [role=tab]{flex:1 0 auto;min-width:52px;font:inherit;font-weight:700;font-family:'Barlow Semi Condensed','Barlow',system-ui,sans-serif;background:none;border:0;border-bottom:3px solid transparent;
+  padding:10px 10px;min-height:44px;color:var(--muted);cursor:pointer}
+.b-tabs [role=tab][aria-selected=true]{color:var(--ink);border-bottom-color:var(--ink)}
+.b-tabs .mark{font-weight:700}
+.b-panel .b-teorcell .mini{margin:6px 0 0}
+.b-res{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:12px 0 0}
+.b-res > div{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:10px}
+.b-res dt{color:var(--muted);font-size:.85rem}
+.b-res dd{margin:2px 0 0;font-weight:700;font-size:1.15rem;font-variant-numeric:tabular-nums}
+.b-resumo{margin-top:16px;padding:14px 16px;border-radius:8px;background:var(--panel);border:1px solid var(--rule);font-weight:600}
+.b-resumo.ok{background:var(--ok-bg);border-color:transparent}
+.b-resumo.bad{background:var(--err-bg);color:var(--err-ink);border-color:transparent}
+td.warn,dd.warn{color:var(--warn-ink);font-weight:500;font-size:.8rem;text-align:left;min-width:120px}
+/* Barra de tolerância no boletim */
+.b-res .r-barra,.b-res .r-avisos{grid-column:1/-1}
+.gauge .pin.bad{color:var(--err-ink)}
+.gauge.mini{margin:0;padding:22px 2px 2px;min-width:120px}
+.gauge.mini .tick,.gauge.mini .side{display:none}
+.gauge.mini .track{height:10px}
+.gauge.mini .pin{top:-20px;font-size:.78rem}
+.b-res dd .gauge{font-size:1rem;font-weight:400;margin:6px 4px 0}

@@ -36,12 +36,23 @@
     <button type="button" id="locked-retry" class="gate-btn">Tentar novamente</button>
   </div>
 </section>
-<div id="account" class="account" hidden>
+<div id="app" hidden>
+<div id="account" class="account">
   <span id="account-email"></span>
   <span id="account-until" class="account-until"></span>
   <button type="button" id="account-logout" class="gate-link">Sair</button>
 </div>
-<div id="calc" hidden>
+<div class="appbar" id="appbar">
+  <div class="seg seg-sm seg-btn" role="group" aria-label="Vista">
+    <button type="button" id="vista-cabo" aria-pressed="true">Cabo a cabo</button>
+    <button type="button" id="vista-boletim" aria-pressed="false">Boletim do vão</button>
+  </div>
+  <div class="seg seg-sm" role="radiogroup" aria-label="Modo">
+    <input type="radio" name="modo" id="modo-ver" value="ver" checked><label for="modo-ver">Verificação</label>
+    <input type="radio" name="modo" id="modo-reg" value="reg"><label for="modo-reg">Regulação</label>
+  </div>
+</div>
+<div id="calc">
 <div class="wrap">
   <header>
     <h1>Verificação de flechas por visada</h1>
@@ -58,6 +69,13 @@
 
       <fieldset>
         <legend>Vão</legend>
+        <div class="field">
+          <label for="cabo">Cabo</label>
+          <div class="box"><select id="cabo">
+            <option>CC1</option><option>CC2</option><option>CC3</option><option>CC4</option><option>CC5</option><option>CC6</option>
+            <option>CG1</option><option>CG2</option></select></div>
+          <span class="hint">No método português, o cabo escolhe o braço do apoio (CC1/CC2 superior, CC3/CC4 médio, CC5/CC6 inferior, CG topo).</span>
+        </div>
         <div class="field">
           <label for="a">Comprimento do vão <i>a</i></label>
           <div class="box"><input id="a" inputmode="decimal" autocomplete="off"><span class="unit">m</span></div>
@@ -80,9 +98,9 @@
       </fieldset>
 
       <fieldset data-m="pt">
-        <legend>Apoio de estação</legend>
+        <legend>Tipo de apoio</legend>
         <div class="field">
-          <label for="tipo-btn">Tipo de apoio</label>
+          <label for="tipo-btn">Tipo</label>
           <input type="hidden" id="tipo">
           <div class="combo">
             <button type="button" id="tipo-btn" class="combo-btn" aria-haspopup="dialog" aria-expanded="false" aria-controls="tipo-panel">
@@ -170,18 +188,35 @@
       </fieldset>
 
       <fieldset>
-        <legend>Referência</legend>
+        <legend>Temperatura e referência</legend>
         <div class="pair">
           <div class="field">
-            <label for="temp">Temperatura</label>
+            <label for="temp">Temperatura local</label>
             <div class="box"><input id="temp" inputmode="decimal" autocomplete="off"><span class="unit">°C</span></div>
           </div>
           <div class="field">
-            <label for="ft">Flecha teórica</label>
-            <div class="box"><input id="ft" inputmode="decimal" autocomplete="off"><span class="unit">m</span></div>
+            <label for="corr" id="corr-lbl">Correção de temperatura (CC)</label>
+            <div class="box"><input id="corr" inputmode="decimal" autocomplete="off" placeholder="0"><span class="unit">°C</span></div>
           </div>
         </div>
-        <span class="hint">A flecha teórica é a da tabela de regulação para a temperatura registada.</span>
+        <p class="tc" id="tc">Temperatura de cálculo –</p>
+        <div class="field">
+          <span class="lbl" id="teor-lbl">Flecha teórica</span>
+          <div class="seg seg-sm" role="radiogroup" aria-labelledby="teor-lbl">
+            <input type="radio" name="teorTipo" id="teor-direta" value="direta" checked><label for="teor-direta">Direta</label>
+            <input type="radio" name="teorTipo" id="teor-tabela" value="tabela"><label for="teor-tabela">Pela tabela</label>
+          </div>
+        </div>
+        <div class="field" id="ft-field">
+          <label for="ft">Flecha teórica</label>
+          <div class="box"><input id="ft" inputmode="decimal" autocomplete="off"><span class="unit">m</span></div>
+        </div>
+        <div class="field" id="preg-field" hidden>
+          <label for="preg">Parâmetro</label>
+          <div class="box"><input id="preg" inputmode="decimal" autocomplete="off"><span class="unit">m</span></div>
+        </div>
+        <div class="pair teor-tab" id="teor-tab" hidden></div>
+        <span class="hint" id="teor-hint">Temperatura de cálculo = local − correção (fluência). Pela tabela: em múltiplos de 5 °C basta um valor; entre linhas, a app interpola.</span>
       </fieldset>
 
       <details class="tol" id="tol">
@@ -243,6 +278,8 @@
 </button>
 </div>
 
+<section id="boletim" class="boletim" hidden aria-label="Boletim do vão"></section>
+</div><!-- #app -->
 <dialog id="save-dialog" class="sheet" aria-labelledby="save-title">
   <form method="dialog" id="save-form">
     <h2 id="save-title">Guardar medição</h2>

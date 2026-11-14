@@ -46,10 +46,48 @@ test('importar ficheiro estranho', () => {
   assert.equal(parseImport('{"app":"flechas","versao":1,"medicoes":[{"id":1}]}').invalid, 1);
 });
 
-test('CSV para Excel PT', () => {
-  const lines = toCSV([rec('a', '2026-11-13T10:00:00Z')]).replace(/^﻿/, '').trim().split('\r\n');
-  assert.equal(lines[0], 'data;vao;cabo;metodo;vao_m;flecha_teorica_m;flecha_medida_m;desvio_pct;resultado');
-  assert.match(lines[1], /;9-10;CC1;Português;417,36;14,83;14,690;-0,95;Conforme$/);
+const HEAD = 'data;vao;cabo;modo;metodo;temp_local_c;temp_calculo_c;vao_m;flecha_teorica_m;flecha_medida_m;desvio_pct;resultado;parametro_m;leitura_alvo_grad';
+const linhas = txt => txt.replace(/^﻿/, '').trim().split('\r\n');
+
+test('CSV para Excel PT (registo antigo, sem kind, continua a exportar)', () => {
+  const lines = linhas(toCSV([rec('a', '2026-11-13T10:00:00Z')]));
+  assert.equal(lines[0], HEAD);
+  assert.match(lines[1], /;9-10;CC1;Verificação;Português;;;417,36;14,83;14,690;-0,95;Conforme;1484,84;$/);
+});
+
+test('CSV com temperaturas', () => {
+  const r = { ...rec('a', '2026-11-13T10:00:00Z'), kind: 'cabo', modo: 'ver', tLocal: 17, tc: 7 };
+  assert.match(linhas(toCSV([r]))[1], /;Verificação;Português;17;7;417,36;/);
+});
+
+const bol = (id) => ({
+  id, kind: 'boletim', savedAt: '2026-11-13T10:00:00Z', vao: '9-10', method: 'pt', modo: 'ver',
+  boletim: { a: '417,36', tLocal: '15', corr: { CC: '10', CG: '5' }, cabos: {} },
+  resultados: {
+    CC1: { flecha: 14.689865, desvio: -0.00954, conforme: true, p: 1484.84, ft: 14.83, tc: 5 },
+    CC2: null,
+    CG1: { flecha: 11.240929, desvio: -0.01237, conforme: true, p: 1939.11, ft: 11.38, tc: 10 },
+  },
+});
+
+test('boletim exporta uma linha por cabo com resultado', () => {
+  const lines = linhas(toCSV([bol('b')]));
+  assert.equal(lines.length, 3);
+  assert.match(lines[1], /;9-10;CC1;Verificação;Português;15;5;417,36;14,83;14,690;-0,95;Conforme;1484,84;$/);
+  assert.match(lines[2], /;9-10;CG1;Verificação;Português;15;10;417,36;11,38;11,241;-1,24;Conforme;1939,11;$/);
+});
+
+test('regulação no CSV: parâmetro e leitura a apontar, sem flecha medida', () => {
+  const r = { ...rec('r', '2026-11-13T10:00:00Z'), kind: 'cabo', modo: 'reg',
+    result: { a: 417.36, ft: 14.6899, flecha: 14.6899, p: 1484.842, z: 98.844, zMin: 98.82, zMax: 98.87 } };
+  assert.match(linhas(toCSV([r]))[1], /;Regulação;Português;;;417,36;14,69;;;;1484,84;98,8440$/);
+});
+
+test('importa boletim e rejeita boletim sem dados', () => {
+  const ok = parseImport(toJSON([bol('b')], new Date('2026-11-13T12:00:00Z')));
+  assert.equal(ok.records.length, 1); assert.equal(ok.invalid, 0);
+  const bad = parseImport(JSON.stringify({ app: 'flechas', versao: 1, medicoes: [{ id: 'x', kind: 'boletim', savedAt: 's', method: 'pt' }] }));
+  assert.equal(bad.invalid, 1);
 });
 
 test('CSV protege campos com ; ou aspas', () => {

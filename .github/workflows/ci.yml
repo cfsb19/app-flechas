@@ -19,3 +19,10 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - name: Testes no browser
         run: npm run e2e
+      - name: Cópia num único ficheiro HTML (sem login)
+        run: npm run build:html
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flechas-html
+          path: dist-local/flechas.html
+          retention-days: 30
